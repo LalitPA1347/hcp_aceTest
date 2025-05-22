@@ -122,12 +122,32 @@ const MainContent = () => {
     pendingParam,
   ]);
 
+  // useEffect(() => {
+  //   if (actionType === "remove") {
+  //     setIsCancelled(true);
+  //     setSourceOfTrigger("cancel");
+  //   }
+  // }, [actionType]);
+
   useEffect(() => {
-    if (actionType === "remove") {
+    if (actionType === "remove" && Array.isArray(dragData)) {
       setIsCancelled(true);
       setSourceOfTrigger("cancel");
+
+      setDroppedParamsConfig((prevConfig) => {
+        const updatedConfig = {};
+
+        // Keep only params that still exist in dragData
+        Object.keys(prevConfig).forEach((param) => {
+          if (dragData.includes(param)) {
+            updatedConfig[param] = prevConfig[param];
+          }
+        });
+
+        return updatedConfig;
+      });
     }
-  }, [actionType]);
+  }, [actionType, dragData]);
 
   useEffect(() => {
     callKpiFilterCountApi();

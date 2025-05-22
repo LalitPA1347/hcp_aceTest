@@ -26,7 +26,7 @@ const HcpAce = () => {
           anchor="left"
           open={sidebarOpen}
           sx={{
-            width: sidebarOpen ? drawerWidth : 0, 
+            width: sidebarOpen ? drawerWidth : 0,
             flexShrink: 0,
             transition: "right 0.3s ease-in-out",
             "& .MuiDrawer-paper": {
@@ -48,7 +48,7 @@ const HcpAce = () => {
               <Box
                 sx={{
                   position: "absolute",
-                  width: "40px",
+                  width: "30px",
                   height: "53px",
                   top: "50px",
                   left: "100%",
@@ -65,7 +65,7 @@ const HcpAce = () => {
               >
                 <IconButton size="large" onClick={() => setSidebarOpen(false)}>
                   <ChevronLeftIcon
-                    sx={{ color: "#001A50", fontSize: "36px", padding: "0px" }}
+                    sx={{ color: "#001A50", fontSize: "30px", padding: "0px" }}
                   />
                 </IconButton>
               </Box>
@@ -78,7 +78,7 @@ const HcpAce = () => {
           <Box
             sx={{
               position: "absolute",
-              width: "40px",
+              width: "30px",
               height: "53px",
               top: "140px",
               left: 0,
@@ -95,7 +95,7 @@ const HcpAce = () => {
           >
             <IconButton size="large" onClick={() => setSidebarOpen(true)}>
               <TuneIcon
-                sx={{ color: "#001A50", fontSize: "36px", padding: "0px" }}
+                sx={{ color: "#001A50", fontSize: "30px", padding: "0px" }}
               />
             </IconButton>
           </Box>
@@ -108,7 +108,7 @@ const HcpAce = () => {
           sx={{
             flexGrow: 1,
             transition: "margin 0.3s ease-in-out, width 0.3s ease-in-out",
-            marginRight: sidePanelOpen ? "17.5%" : 0, 
+            marginRight: sidePanelOpen ? "17.5%" : 0,
             overflow: "auto",
           }}
         >
