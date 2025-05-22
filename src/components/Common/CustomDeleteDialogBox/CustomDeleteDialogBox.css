@@ -1,0 +1,18 @@
+.delete-dialog-box{
+    padding: 20px;
+}
+.delete-dialog-warning-box{
+    margin-top: 25px;
+    border-radius: 4px;
+    background-color: #FFE9D9;
+}
+.delete-dialog-red-line{
+    width: 5px;
+    background: #FA703F;
+}
+.delete-dialog-warning-text-box{
+    margin-top: 15px;
+}
+.delete-dialog-warning-model{
+    margin-left: 10px;
+}

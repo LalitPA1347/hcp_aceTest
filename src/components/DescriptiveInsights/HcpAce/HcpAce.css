@@ -1,0 +1,12 @@
+.hcpace-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.hcpace-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}

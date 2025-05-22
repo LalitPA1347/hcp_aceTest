@@ -1,0 +1,56 @@
+.smartAlert-analytics-graph-box {
+  height: auto;
+  width: 79.3vw;
+  /* border: 1px solid black; */
+  margin-left: 255.5px;
+  overflow-y: auto;
+  /* padding: 10px; */
+}
+
+@media (max-width : 1200px){
+  .smartAlert-analytics-graph-box{
+    margin-left: 72px;
+   
+  }
+}
+.smartAlert-analytics-graph-model {
+  width: 78.7vw;
+  border: 1px solid #e1e1e1;
+  /* border: 1px solid red; */
+  border-radius: 2px;
+  height: 75.5vh;
+  margin-top: 10px;
+}
+
+@media (max-width : 1200px){
+  .smartAlert-analytics-graph-model {
+    margin-left: 0px;
+  }
+}
+.smartAlert-analytics-graph-header {
+  height: 5vh;
+  background-color: #eaeaf8;
+  color: #151d64;
+}
+
+.table-container2 {
+  width: 78.7vw;
+  margin-top: 10px;
+  border: 1px solid #e1e1e1;
+  border-radius: 4px;
+}
+
+.graph-background{
+  background-color: white;
+  /* border: 1px solid green; */
+  max-height:56vh;
+}
+
+.graph{
+  height: 100%;
+}
+
+.table{
+  height: 28%;
+  margin-top: 4px;
+}

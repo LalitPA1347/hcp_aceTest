@@ -1,0 +1,86 @@
+.sidebar-model {
+  position: absolute;
+  top:0px;
+  width: 16vw;
+  height: 100vh;
+  background: white;
+  padding-top: 160px;
+  box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
+}
+.sidebar-box {
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+.sidebar-inner-box {
+  padding: 0px 0 0px 20px;
+}
+.sidebar-inner-box img {
+  margin-right: 15px;
+  height: 20px;
+  width: 20px;
+}
+.sideLine {
+  background-color: #e8e8e8;
+  height: 42px;
+  width: 3px;
+}
+.active-sideLine {
+  background-color: #002060;
+  height: 42px;
+  width: 3px;
+}
+.expand-btn{
+  background-color: #e8e8e8;
+  position: absolute;
+  top:450px;
+  left: 220px;
+  border-radius: 4px;
+  height:40px;
+  width:15px;
+  padding-top: 8px;
+  cursor: pointer;
+}
+.collapse-btn{
+  background-color: #e8e8e8;
+  position: absolute;
+  top:450px;
+  left: 0;
+  border-radius: 4px;
+  height:40px;
+  width:15px;
+  padding-top: 8px;
+  cursor: pointer;
+}
+.nav-collapse{
+  position: absolute;
+  top: 0;
+  height: 100vh;
+  width: 4vw;
+  padding-top: 168px;
+}
+.nav-collapse-img-circle {
+  background-color: #CCCCCC;
+  width: 30px;
+  height: 30px;
+  margin-left: 20px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-bottom: 25px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+}
+.nav-collapse-img-circle.active {
+  background-color: #002060;
+
+}
+.nav-collapse-img{
+  height: 20px;
+  width: 20px;
+  filter: drop-shadow(0px 100px 0 #676767);
+  transform: translateY(-100px);
+}
+.nav-collapse-img.active{
+  filter: drop-shadow(0px 100px 0 #FFFFFF);
+}

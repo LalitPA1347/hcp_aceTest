@@ -1,0 +1,19 @@
+.physician-analytics-indication-model {
+  border: 1px solid #e1e1e1;
+  border-radius: 4px;
+  /* height: 14vh; */
+  padding-top: 10px;
+  /* margin-left: 260px; */
+  margin-top: 10px;
+  margin-right: 35px;
+  width: 100%;
+}
+
+
+@media (max-width: 1200px) {
+  .physician-analytics-indication-model {
+      margin-left: 72px;
+      margin-top: -42px;
+     
+  }
+}

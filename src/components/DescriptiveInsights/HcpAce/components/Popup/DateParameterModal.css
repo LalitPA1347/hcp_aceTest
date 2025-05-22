@@ -1,0 +1,121 @@
+.date-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.date-modal-content {
+  background-color: #fff;
+  border-radius: 10px;
+  width: 600px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  max-height: 80%;
+  overflow-y: auto;
+}
+
+.date-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.date-modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
+  transition: color 0.3s;
+}
+
+.close-btn:hover {
+  color: #333;
+}
+
+.date-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.date-modal-actions button {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.date-modal-actions button:hover {
+  background-color: #45a049;
+}
+
+.date-modal-actions button.cancel-btn {
+  background-color: #f44336;
+}
+
+.date-modal-actions button.cancel-btn:hover {
+  background-color: #d32f2f;
+}
+
+.date-modal-select {
+  margin-top: 20px;
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.date-modal-tree ul {
+  list-style: none;
+  padding-left: 20px;
+  margin: 0;
+}
+
+.tree-node {
+  cursor: pointer;
+  font-weight: bold;
+  color: #333;
+  display: inline-block;
+  margin-left: 5px;
+}
+
+.tree-node:hover {
+  text-decoration: underline;
+}
+
+.date-modal-tree input[type="checkbox"] {
+  margin-right: 10px;
+}
+
+.date-modal-tree li {
+  margin-bottom: 5px;
+}
+
+.date-modal-tree li ul {
+  margin-top: 5px;
+  padding-left: 20px;
+  border-left: 1px solid #ddd;
+}

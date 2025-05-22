@@ -1,0 +1,47 @@
+.graph-background-color {
+  /* background-color: white; */
+  /* padding: 4px; */
+}
+
+.patient-analytics-graph-box {
+  height: 77vh;
+  width: 79.3vw;
+  margin-left: 255.5px;
+  overflow-y: auto;
+}
+@media (max-width: 1200px) {
+  .patient-analytics-graph-box {
+    margin-left: 72px;
+  }
+}
+
+.patient-analytics-graph-model {
+  width: 78.7vw;
+  border: 1px solid #e1e1e1;
+  border-radius: 4px;
+  height: 75.5vh;
+  margin-top: 10px;
+  /* display: flex;
+  justify-content: center;
+  align-items: center; */
+}
+
+@media (max-width: 1200px) {
+  .patient-analytics-graph-model {
+    margin-left: 0px;
+  }
+}
+
+.patient-analytics-graph-header {
+  height: 5vh;
+  background-color: #eaeaf8;
+  color: #8085af;
+}
+
+.table-container2 {
+  width: 78.7vw;
+  margin-top: 10px;
+  border: 1px solid #e1e1e1;
+  border-radius: 4px;
+}
+

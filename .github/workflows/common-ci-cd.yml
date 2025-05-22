@@ -1,0 +1,124 @@
+name: Unified CI/CD Workflow for claims tool HCP ACE main and test branch
+
+on:
+  push:
+    branches:
+      - main
+      - test
+
+jobs:
+  checkout-build-deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      CLUSTER_NAME: "HCPACE"
+      SERVICE_NAME: "hcpace-ui-prod-service"
+      APP_NAME : "claims-tool-web-app"
+      ENV_NAME : "Claims-tool-web-app-env"
+
+    steps:
+      - name:  code-checkout
+        uses:  actions/checkout@v3
+        #it will use built-in actions for checkout
+        
+      - name: setup Node.Js environment
+        uses: actions/setup-node@v3 
+        with: 
+          node-version: '18'
+        #it will use built-in action for setting up node
+        
+      - name: Cache Node.js modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+              ${{ runner.os }}-node-
+              
+      - name: install dependencies
+        run: npm install --force
+        #installing dependies 
+        
+      - name: build the application
+        run:  npm run build
+        #building package
+        
+      - name: check Docker version
+        run: |
+          docker --version
+
+      - name: check AWS CLI version
+        run: |
+          aws --version
+
+      - name: Authenticate Docker with ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com
+
+      - name: Set environment-specific variables
+        run: |
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "ECR_REPOSITORY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/hcpace-frontend" >> $GITHUB_ENV
+            echo "DEPLOY_TYPE=ECS" >> $GITHUB_ENV
+
+          elif [[ "${{ github.ref_name }}" == "test" ]]; then
+            echo "ECR_REPOSITORY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ditool-frontend" >> $GITHUB_ENV
+            echo "DEPLOY_TYPE=ELB" >> $GITHUB_ENV
+
+          fi
+
+      - name: Build Docker image
+        run: docker build -t $ECR_REPOSITORY:latest .
+
+      - name: Push Docker image to ECR
+        run: docker push $ECR_REPOSITORY:latest
+
+      - name: Deploy based on branch
+        run: |
+          if [[ "$DEPLOY_TYPE" == "ECS" ]]; then
+            echo "Deploying to ECS"
+            aws ecs update-service \
+              --cluster $CLUSTER_NAME \
+              --service $SERVICE_NAME \
+              --force-new-deployment \
+              --region $AWS_REGION
+              
+          elif [[ "$DEPLOY_TYPE" == "ELB" ]]; then
+            echo "Creating Dockerrun.aws.json zip file"
+            echo '{
+              "AWSEBDockerrunVersion": "1",
+              "Image": {
+                "Name": "'"$ECR_REPOSITORY:latest"'",
+                "Update": "true"
+              },
+              "Ports": [
+                {
+                  "ContainerPort": "3000",
+                  "HostPort": "3000"
+                }
+              ]
+            }' > Dockerrun.aws.json
+            zip Dockerrun.zip Dockerrun.aws.json
+
+            echo "Uploading ZIP to S3"
+            aws s3 cp Dockerrun.zip s3://claims-tool-diace-ui-docker-image/
+
+            echo "Deploying to Elastic Beanstalk"
+            VERSION_LABEL=$(date +"%Y%m%d%H%M%S-HCPACE-ui")
+            aws elasticbeanstalk create-application-version \
+              --application-name "$APP_NAME" \
+              --version-label "$VERSION_LABEL" \
+              --source-bundle S3Bucket=claims-tool-diace-ui-docker-image,S3Key=Dockerrun.zip \
+              --region $AWS_REGION
+
+            aws elasticbeanstalk update-environment \
+              --application-name "$APP_NAME" \
+              --environment-name "$ENV_NAME" \
+              --version-label "$VERSION_LABEL" \
+              --region $AWS_REGION
+          else
+            echo "Unknown deployment type. Skipping deployment."
+          fi

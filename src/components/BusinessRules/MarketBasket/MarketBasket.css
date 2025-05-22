@@ -1,0 +1,46 @@
+.market-basket-model {
+  width: 100vw;
+  padding-left: 220px;
+  background: #f5f7fa;
+}
+.market-basket-box {
+  border: 1px solid #e1e1e1;
+  border-radius: 4px;
+  margin: 10px 40px;
+  padding: 10px 20px;
+  height: 63vh;
+}
+.market-basket-table-model {
+  width: 50vw;
+}
+.market-basket-title-box {
+  margin-bottom: 5px;
+}
+.mb-code-title {
+  margin-top: 5px;
+}
+.procedure-ndc-model {
+  width: 24vw;
+  margin-left: 20px;
+}
+.procedure-ndc-data-box {
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 49vh;
+  border: 1px solid #e1e1e1;
+}
+.codeTextBox {
+  width: 11.8vw;
+  height: 5.5vh;
+  background: #fafafc;
+  text-align: center;
+  padding-top: 10px;
+}
+.codeTextBox.odd {
+  background: #ffffff;
+  text-align: center;
+  padding-top: 10px;
+}
+.code-border {
+  border: 1px solid #eaeaf8;
+}

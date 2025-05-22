@@ -1,0 +1,13 @@
+{
+  "AWSEBDockerrunVersion": "1",
+  "Image": {
+    "Name": "238982233830.dkr.ecr.us-east-2.amazonaws.com/claimstool-frontend:latest",
+    "Update": "true"
+  },
+  "Ports": [
+    {
+      "ContainerPort": 3000,
+      "HostPort": 3000
+    }
+  ]
+}

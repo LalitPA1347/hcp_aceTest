@@ -1,0 +1,15 @@
+.code-model {
+  width: 100vw;
+  padding-left: 220px;
+  background: #f5f7fa;
+}
+.code-box {
+  border: 1px solid #e1e1e1;
+  border-radius: 4px;
+  margin: 10px 40px;
+  padding: 10px 20px;
+  height: 61vh;
+}
+.lot-checkbox-model{
+  margin-top: 15px;
+}

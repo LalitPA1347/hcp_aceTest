@@ -1,0 +1,40 @@
+.physician-analytics-graph-box {
+  height: 77vh;
+  width: 79.3vw;
+  /* border: 1px solid black; */
+  margin-left: 255.5px;
+  overflow-y: auto;
+}
+
+@media (max-width: 1200px) {
+  .physician-analytics-graph-box {
+    margin-left: 72px;
+  }
+}
+
+.physician-analytics-graph-model {
+  width: 78.7vw;
+  border: 1px solid #e1e1e1;
+  border-radius: 4px;
+  height: 75.5vh;
+  margin-top: 10px;
+}
+
+@media (max-width: 1200px) {
+  .physician-analytics-graph-model {
+    margin-left: 0px;
+  }
+}
+
+.physician-analytics-graph-header {
+  height: 5vh;
+  background-color: #eaeaf8;
+  color: #151d64;
+}
+
+.table-container2 {
+  width: 78.7vw;
+  margin-top: 10px;
+  border: 1px solid #e1e1e1;
+  border-radius: 4px;
+}
