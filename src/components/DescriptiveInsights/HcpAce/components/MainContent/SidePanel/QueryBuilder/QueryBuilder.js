@@ -27,7 +27,7 @@ import DeleteRule from "../../../../../../../assets/images/DeleteRule.svg";
 import AddIcon from "@mui/icons-material/Add";
 import MinusIcon from "../../../../../../../assets/images/MinusIcon.svg";
 import "./QueryBuilder.css";
-
+ 
 const style = {
   dialog: {
     "& .MuiDialog-paper": {
@@ -110,7 +110,7 @@ const style = {
     },
   },
 };
-
+ 
 const secondaryDropdown = (value = []) => [
   {
     name: "Select Column",
@@ -167,19 +167,19 @@ const QueryBuilder = ({
       toast.warning("Please fill Condition name before saving!");
       return false;
     }
-
+ 
     // Iterate over groups and validate fields
     let isLotFound = false;
-
+ 
     for (const groupKey in groups) {
       const group = groups[groupKey];
-
+ 
       // Validate Rules in the Group
       if (group.Rules) {
         for (const ruleKey in group.Rules) {
           const rule = group.Rules[ruleKey];
           const ruleDropdown = group.DropDown[ruleKey];
-
+ 
           // Check if any required field in DropDown is empty
           for (const dropdown of ruleDropdown) {
             if (!rule[dropdown.name] || rule[dropdown.name] === "") {
@@ -194,7 +194,7 @@ const QueryBuilder = ({
     }
     return true;
   };
-
+ 
   const handleSave = (primaryDropdownValue, query, groups, conditionName) => {
     if (handleValidations(primaryDropdownValue, groups, conditionName)) {
       handleSaveCondition(
@@ -208,7 +208,7 @@ const QueryBuilder = ({
       //   dispatch(setOpenAdhocs(false));
     }
   };
-
+ 
   useEffect(() => {
     if (savedCondition && Object.keys(savedCondition).length > 0) {
       setGroups(savedCondition.GroupsInfo);
@@ -223,40 +223,40 @@ const QueryBuilder = ({
       return;
     }
   }, []);
-
+ 
   useEffect(() => {
     setMergedGroups((prevMergedGroups) => {
       const updatedMergedGroups = structuredClone(prevMergedGroups);
-
+ 
       Object.keys(updatedMergedGroups).forEach((mergeGroupKey) => {
         const selectedGroups = updatedMergedGroups[mergeGroupKey].selectedGroup;
-
+ 
         Object.keys(selectedGroups).forEach((groupName) => {
           if (groups[groupName]) {
             selectedGroups[groupName] = structuredClone(groups[groupName]);
           }
         });
-
+ 
         updatedMergedGroups[mergeGroupKey].selectedGroup = {
           ...selectedGroups,
         };
       });
-
+ 
       return updatedMergedGroups;
     });
   }, [groups]);
-
+ 
   const generateLogicString = (mergedGroups) => {
     const mergeGroupEntries = Object.entries(mergedGroups);
-
+ 
     if (mergeGroupEntries.length === 0) return "";
-
+ 
     const logicString = mergeGroupEntries
       .map(([mergeGroupName, mergeGroup]) => {
         const groupEntries = Object.entries(mergeGroup.selectedGroup || {});
-
+ 
         if (groupEntries.length === 0) return "";
-
+ 
         const groupString = groupEntries
           .map(([groupName, groupData], index) => {
             if (index === groupEntries.length - 1) {
@@ -265,7 +265,7 @@ const QueryBuilder = ({
             return `${groupName} ${groupData.condition}`;
           })
           .join(" ");
-
+ 
         return `(${groupString})`;
       })
       .filter(Boolean)
@@ -274,10 +274,10 @@ const QueryBuilder = ({
         return `${groupString} ${mergeGroupCondition}`;
       })
       .join(" ");
-
+ 
     return logicString;
   };
-
+ 
   const genarateQuery = (conditionString, groupCondition) => {
     if (groupCondition) {
       return `${conditionString} ${groupCondition}`;
@@ -285,12 +285,12 @@ const QueryBuilder = ({
     conditionString = conditionString.replace(/\s*(AND|OR)\s*$/, "").trim();
     return conditionString;
   };
-
+ 
   useEffect(() => {
     let mergeCondition = "";
     let groupCondition = "";
     const restOfTheGroups = getGroupsNotMerge(groups || {}, mergedGroups || {});
-
+ 
     if (mergedGroups && Object.keys(mergedGroups).length > 0) {
       mergeCondition = generateLogicString(mergedGroups);
     }
@@ -308,12 +308,12 @@ const QueryBuilder = ({
     }
     setQuery(groupCondition);
   }, [groups, mergedGroups]);
-
+ 
   const handleCheckbox = (e, groupName) => {
     const value = e.target.checked;
     setSelectedGroups((prev) => ({ ...prev, [groupName]: value }));
   };
-
+ 
   const addGroup = () => {
     const getNextGroupName = () => {
       const lastGroup = Object.keys(groups).at(-1);
@@ -325,7 +325,7 @@ const QueryBuilder = ({
       [`Group ${getNextGroupName()}`]: groupDetails,
     }));
   };
-
+ 
   const removeGroup = (groupName) => {
     if (Object.keys(groups).length === 1) {
       toast.info("There is only one group. Cannot delete it!");
@@ -337,13 +337,13 @@ const QueryBuilder = ({
       return updatedGroups;
     });
   };
-
+ 
   const addRule = (groupName) => {
     const getNextRuleName = (arr) =>
       String.fromCharCode(
         Object.keys(groups[groupName].Rules).at(-1).slice(-1).charCodeAt(0) + 1
       );
-
+ 
     setGroups((prevGroups) => ({
       ...prevGroups,
       [groupName]: {
@@ -361,7 +361,7 @@ const QueryBuilder = ({
       },
     }));
   };
-
+ 
   const removeRule = (groupName, group, ruleName) => {
     const editedGroup = {
       ...group,
@@ -379,19 +379,19 @@ const QueryBuilder = ({
       [groupName]: editedGroup,
     }));
   };
-
+ 
   const mergeGroupsHandler = () => {
     const selectedGroupKeys = Object.keys(selectedGroups).filter(
       (key) => selectedGroups[key] && groups[key]
     );
-
+ 
     if (selectedGroupKeys.length < 2) {
       toast.info("Select at least two valid groups to merge.");
       return;
     }
-
+ 
     const selectedGroupObjects = selectedGroupKeys.map((key) => groups[key]);
-
+ 
     // const hasMissingDatasource = selectedGroupObjects.some(
     //   (group) => !group.datasource || group.datasource.trim() === ""
     // );
@@ -399,7 +399,7 @@ const QueryBuilder = ({
     //   toast.warning("Please select datasource before merging.");
     //   return;
     // }
-
+ 
     // const firstDatasource = selectedGroupObjects[0].datasource;
     // const allSameDatasource = selectedGroupObjects.every(
     //   (group) => group.datasource === firstDatasource
@@ -408,7 +408,7 @@ const QueryBuilder = ({
     //   toast.warning("All selected groups must have the same datasource.");
     //   return;
     // }
-
+ 
     const getMergeGroupName = () => {
       const keys = Object.keys(mergedGroups);
       const lastNum = keys.length
@@ -416,7 +416,7 @@ const QueryBuilder = ({
         : 0;
       return `Merge Group ${lastNum + 1}`;
     };
-
+ 
     const mergedGroupObject = {
       [getMergeGroupName()]: {
         selectedGroup: Object.keys(selectedGroups)
@@ -431,7 +431,7 @@ const QueryBuilder = ({
     setMergedGroups((prev) => ({ ...prev, ...mergedGroupObject }));
     setSelectedGroups({});
   };
-
+ 
   const undoMergeGroupsHandler = (mergeName) => {
     setMergedGroups((prevMergedGroups) => {
       const updatedGroups = { ...prevMergedGroups };
@@ -439,7 +439,7 @@ const QueryBuilder = ({
       return updatedGroups;
     });
   };
-
+ 
   const handleChangeSecondaryDropdown = (event, groupName, ruleName) => {
     const { name, value } = event.target;
     if (name === "Select Column") {
@@ -479,13 +479,13 @@ const QueryBuilder = ({
         },
       }));
     }
-
+ 
     if (name === "Condition") {
       setGroups((prevGroups) => {
         const selectedColumn =
           prevGroups[groupName].Rules[ruleName]["Select Column"];
         const selectValuesOptions = kpisData[selectedColumn] || [];
-
+ 
         return {
           ...prevGroups,
           [groupName]: {
@@ -536,7 +536,7 @@ const QueryBuilder = ({
       }));
     }
   };
-
+ 
   const handleChangeAndOrCondition = (event, groupName) => {
     const { value } = event.target;
     setGroups((prevGroups) => ({
@@ -547,10 +547,10 @@ const QueryBuilder = ({
       },
     }));
   };
-
+ 
   const getColumnByDataSource = (data, dataSource) => {
     const result = new Set();
-
+ 
     Object.entries(data).forEach(([_, section]) => {
       if (section.DataSource?.includes(dataSource)) {
         const traverse = (obj) =>
@@ -560,20 +560,20 @@ const QueryBuilder = ({
             else if (typeof value === "object" && value !== null)
               traverse(value);
           });
-
+ 
         traverse(section);
       }
     });
-
+ 
     return [...result];
   };
-
+ 
   const handleDatasource = (event, groupName) => {
     const columnValues = getColumnByDataSource(
       selectedKpiData,
       event.target.value
     );
-
+ 
     setGroups((prevGroups) => {
       const updatedDropDown = prevGroups[groupName].DropDown.Rule1.map(
         (item) => {
@@ -588,7 +588,7 @@ const QueryBuilder = ({
           return item;
         }
       );
-
+ 
       return {
         ...prevGroups,
         [groupName]: {
@@ -604,7 +604,7 @@ const QueryBuilder = ({
       };
     });
   };
-
+ 
   const renderGroup = (group, groupName, index, merge, restOfTheGroups) => (
     <div key={groupName?.key}>
       <div key={group.id} className="custom-kpi-parent-group">
@@ -689,7 +689,7 @@ const QueryBuilder = ({
             </Tooltip>
           </div>
         </div>
-
+ 
         <div className="custom-kpi-group">
           {group.Rules &&
             Object.keys(group.Rules).map((ruleName, index) => {
@@ -841,35 +841,35 @@ const QueryBuilder = ({
       )}
     </div>
   );
-
+ 
   const getLastMergeGroup = (mergeName) => {
     if (!mergedGroups || typeof mergedGroups !== "object") return true;
     if (!groups || typeof groups !== "object") return true;
-
+ 
     const mergedGroupKeys = Object.keys(mergedGroups);
     if (mergedGroupKeys.at(-1) !== mergeName) return true;
-
+ 
     const getSelectedGroupKeys = mergedGroupKeys.flatMap((mergeGroup) =>
       Object.keys(mergedGroups[mergeGroup]?.selectedGroup || {})
     );
-
+ 
     const missing = Object.keys(groups).some(
       (value) => !getSelectedGroupKeys.includes(value)
     );
-
+ 
     return missing;
   };
-
+ 
   const getGroupsNotMerge = (restGroup = {}, mergeGroupSelected = {}) => {
     if (!restGroup || typeof restGroup !== "object") return {};
     if (!mergeGroupSelected || typeof mergeGroupSelected !== "object")
       return {};
-
+ 
     // Extract selected group names safely
     const selectedGroupNames = Object.values(mergeGroupSelected).flatMap(
       (mergeGroup) => Object.keys(mergeGroup.selectedGroup || {})
     );
-
+ 
     // Filter groups not included in selectedGroupNames
     return Object.keys(restGroup)
       .filter((groupName) => !selectedGroupNames.includes(groupName))
@@ -878,7 +878,7 @@ const QueryBuilder = ({
         return acc;
       }, {});
   };
-
+ 
   const handleChangeMergeCondition = (event, mergeName) => {
     const { value } = event.target;
     setMergedGroups((prev) => ({
@@ -889,7 +889,7 @@ const QueryBuilder = ({
       },
     }));
   };
-
+ 
   const renderCondition = () => {
     const restOfTheGroups = getGroupsNotMerge(groups || {}, mergedGroups || {});
     return (
@@ -931,7 +931,7 @@ const QueryBuilder = ({
                     </IconButton>
                   </Tooltip>
                 </Stack>
-
+ 
                 <Stack className="groups-container">
                   {merge.selectedGroup &&
                     Object.keys(merge.selectedGroup).map((groupName, index) => {
@@ -957,7 +957,7 @@ const QueryBuilder = ({
             </>
           );
         })}
-
+ 
         {restOfTheGroups && Object.keys(restOfTheGroups).length === 0 ? (
           <Button
             variant="outlined"
@@ -995,12 +995,12 @@ const QueryBuilder = ({
       </Box>
     );
   };
-
+ 
   const handlePrimaryChange = (event) => {
     const { name, value } = event.target;
     setPrimaryDropdownValue((prev) => ({ ...prev, [name]: [...value] }));
   };
-
+ 
   return (
     <Dialog sx={style.dialog} open={addConditionsPopup}>
       <Stack
@@ -1032,7 +1032,7 @@ const QueryBuilder = ({
           <img src={CloseIcon} />
         </IconButton>
       </Stack>
-
+ 
       <Stack className="primary-filters"></Stack>
       <Stack className="groups-container">{renderCondition()}</Stack>
       <hr />

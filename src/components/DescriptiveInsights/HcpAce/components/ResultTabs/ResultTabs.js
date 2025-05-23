@@ -8,8 +8,8 @@ import { Button, MenuItem, Select } from "@mui/material";
 import "./ResultTabs.css";
 import Download from "../../../../../assets/images/imagesR/Download.svg";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import CommonLoader from "../../../../Common/Loader/CommonLoader";
 import { useSelector } from "react-redux";
+import Loader from "../Loader/Loader";
 
 const style = {
   addBtn: {
@@ -156,7 +156,7 @@ function ResultTabs() {
                 zIndex: 1000, 
               }}
             >
-              <CommonLoader />
+              <Loader />
             </Box>
           )}
         </Box>
