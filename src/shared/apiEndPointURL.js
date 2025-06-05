@@ -29,4 +29,6 @@ export const API_URL = {
   deleteAdhocs: `${baseUrl}/delete-adhoc`,
   kpiFilterCount: `${baseUrl}/Kpi_filter_count`,
   hcpOutputDataApi: `${baseUrl}/output-data`,
+  decileOutputData: `${baseUrl}/decile-output-data`,
+  decilingConcentrationCurve: `${baseUrl}/concentration-curve-data`,
 };

@@ -2,6 +2,8 @@ import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   hcpAceApiData: {},
+  outputTabData: { columns: [], rows: [] },
+  decilingData: [],
   columns: [],
   rows: [],
   loader: "false",
@@ -17,8 +19,14 @@ const tableSlice = createSlice({
     setColumns: (state, action) => {
       state.columns = action.payload;
     },
+    setOutputTabData: (state, action) => {
+      state.outputTabData = action.payload;
+    },
     sethcpAceApiData: (state, action) => {
       state.hcpAceApiData = action.payload;
+    },
+    setDecilingData: (state, action) => {
+      state.decilingData = action.payload;
     },
     sethcpLoader: (state, action) => {
       state.loader = action.payload;
@@ -26,6 +34,12 @@ const tableSlice = createSlice({
   },
 });
 
-export const { setRows, setColumns, sethcpAceApiData, sethcpLoader } =
-  tableSlice.actions;
+export const {
+  setRows,
+  setColumns,
+  setOutputTabData,
+  sethcpAceApiData,
+  setDecilingData,
+  sethcpLoader,
+} = tableSlice.actions;
 export default tableSlice.reducer;

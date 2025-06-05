@@ -1,22 +1,44 @@
-import React, { useState } from "react";
-import "./SidePanel.css";
-import Remove from "../../../../../../assets/images/Remove.svg";
-import QueryBuilder from "./QueryBuilder/QueryBuilder";
+import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Box, Stack, Typography } from "@mui/material";
-import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import {
+  customFilterDataApi,
+  customFilterSaveDataApi,
+  customFilterDeleteDataApi,
+} from "../../../../../../services/DescriptiveInsights/hcpace.service";
+import { useDispatch } from "react-redux";
+import { setCustomFilter } from "../../../../../../redux/descriptiveInsights/customFilterSlice";
+import Remove from "../../../../../../assets/images/Remove.svg";
+import QueryBuilder from "./QueryBuilder/QueryBuilder";
+import DeleteRule from "../../../../../../assets/images/DeleteRule.svg";
+import Edit from "../../../../../../assets/images/Edit.svg";
+import "./SidePanel.css";
 
-export default function SidePanel({ open, setOpen, children }) {
+export default function SidePanel({ open, handlesideBar, FlowChartOpen }) {
+  const dispatch = useDispatch();
+  const customFilterData = useSelector(
+    (state) => state.customFilterData.filters
+  );
   const Kpiconfigs = useSelector((state) => state.dragData.Kpiconfigs);
   const selectedkpi = useSelector((state) => state.dragData.selectedkpiData);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [customFilterData, setCustomFilterData] = useState([]);
   const [openQueryBuilder, setOpenQueryBuilder] = useState(false);
   const [savedQueryCondition, setSavedQueryCondition] = useState(false);
   const selectedKpiData = getSelectedKPIInfo(selectedkpi, Kpiconfigs);
   const datasourceOption = getUniqueDataSources(selectedKpiData);
 
-  const togglePanel = () => setOpen((prev) => !prev);
+  useEffect(() => {
+    handleSavedCustomFilter();
+  }, []);
+
+  const handleSavedCustomFilter = async () => {
+    const response = await customFilterDataApi();
+    if (response?.status === 200) {
+      dispatch(setCustomFilter(response?.data || []));
+    } else {
+      console.error("Error fetching saved custom filters:", response);
+    }
+  };
 
   const handleSearchChange = (event) => {
     setSearchQuery(event.target.value);
@@ -48,6 +70,15 @@ export default function SidePanel({ open, setOpen, children }) {
     return Array.from(uniqueSources);
   }
 
+  const handleSaveConditionApi = async (payload) => {
+    const response = await customFilterSaveDataApi(payload);
+    if (response?.status === 200) {
+      console.log("response status", response);
+    } else {
+      console.error("Error fetching saved custom filters:", response);
+    }
+  };
+
   const handleSaveCondition = (
     primaryDropdownValue,
     query,
@@ -61,20 +92,38 @@ export default function SidePanel({ open, setOpen, children }) {
       GroupsInfo: groups,
       MergedGroups: mergedGroups,
     };
-    const deepCopy = JSON.parse(JSON.stringify(customFilterData)).filter(item => item.QueryName !== conditionName);
+    const deepCopy = JSON.parse(JSON.stringify(customFilterData)).filter(
+      (item) => item.QueryName !== conditionName
+    );
 
-    setCustomFilterData([data, ...deepCopy]);
+    dispatch(setCustomFilter([data, ...deepCopy]));
     setOpenQueryBuilder(false);
+    handleSaveConditionApi(data);
   };
 
   const handleCloseQueryBuilder = () => {
     setOpenQueryBuilder(false);
-    setSavedQueryCondition({});
+    setSavedQueryCondition(false);
   };
 
   const handleOpenSaveQuery = (saveQuery) => {
     setSavedQueryCondition(saveQuery);
     setOpenQueryBuilder(true);
+  };
+
+  const handleDeleteCustomFilter = async (query) => {
+    const payload = {
+      QueryName: query.QueryName,
+    };
+    const response = await customFilterDeleteDataApi(payload);
+    if (response?.status === 200) {
+      const deepCopy = JSON.parse(JSON.stringify(customFilterData)).filter(
+        (item) => item.QueryName !== payload.QueryName
+      );
+      dispatch(setCustomFilter(deepCopy));
+    } else {
+      console.error("Error deleting custom filter:", response);
+    }
   };
 
   const handleDragStart = (event, item) => {
@@ -85,6 +134,7 @@ export default function SidePanel({ open, setOpen, children }) {
         dataSources: Object.values(item.GroupsInfo).map(
           (group) => group.datasource
         ),
+        data: item,
       })
     );
     event.dataTransfer.effectAllowed = "copy";
@@ -94,8 +144,8 @@ export default function SidePanel({ open, setOpen, children }) {
     <>
       {/* Toggle Button */}
       <button
-        className={`sp-toggle ${open ? "open" : ""}`}
-        onClick={togglePanel}
+        className={`sp-toggle ${open ? "open" : FlowChartOpen ? "flow-open" : ""}`}
+        onClick={handlesideBar}
         aria-label={open ? "Custom Filters" : "Custom Filters"}
       >
         <span
@@ -145,7 +195,6 @@ export default function SidePanel({ open, setOpen, children }) {
               }}
               draggable="true"
               onDragStart={(event) => handleDragStart(event, item)}
-              onClick={() => handleOpenSaveQuery(item)}
             >
               <Typography
                 noWrap
@@ -153,11 +202,34 @@ export default function SidePanel({ open, setOpen, children }) {
               >
                 {item.QueryName}
               </Typography>
-              <ArrowForwardIosIcon sx={{ color: "#444", fontSize: "16px" }} />
+
+              <Stack key={item.QueryName} alignItems="center" direction="rows">
+                <img
+                  src={Edit}
+                  alt="Edit Rule"
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => handleOpenSaveQuery(item)}
+                />
+                <img
+                  src={DeleteRule}
+                  alt="Delete Rule"
+                  style={{
+                    marginLeft: "5px",
+                    width: "36px",
+                    height: "36px",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => handleDeleteCustomFilter(item)}
+                />
+              </Stack>
             </Stack>
           ))}
         </Box>
-        {children}
+        {/* {children} */}
       </div>
       {openQueryBuilder && (
         <QueryBuilder

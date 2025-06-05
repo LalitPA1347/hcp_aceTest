@@ -6,10 +6,10 @@ import { useSelector } from "react-redux";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-const DescriptiveInsightsTable = forwardRef((props, ref) => {
+const DescriptiveInsightsTable = forwardRef(({ rows, columns }, ref) => {
   const theme = useTheme();
-  const rows = useSelector((state) => state.table.rows);
-  const columns = useSelector((state) => state.table.columns);
+  // const rows = useSelector((state) => state.table.rows);
+  // const columns = useSelector((state) => state.table.columns);
 
   useImperativeHandle(ref, () => ({
     handleDownload() {
@@ -43,12 +43,8 @@ const DescriptiveInsightsTable = forwardRef((props, ref) => {
           width: "100%",
           bgcolor: "#fff",
           overflowY: "auto",
-          // borderRadius: 2,
-          // boxShadow: 1,
-          // p: 2,
         }}
       >
-        {/* <Box className="outputText">Output </Box> */}
         <DataGrid
           rows={rows}
           columns={columns}
@@ -63,7 +59,7 @@ const DescriptiveInsightsTable = forwardRef((props, ref) => {
               backgroundColor: theme.palette.grey[100],
               borderBottom: `1px solid ${theme.palette.divider}`,
               borderTop: `1px solid ${theme.palette.divider}`,
-              position: "sticky", // 👈 ensures sticky headers
+              position: "sticky",
               top: 0,
             },
             "& .MuiDataGrid-row": {

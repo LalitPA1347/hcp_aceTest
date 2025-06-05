@@ -70,7 +70,6 @@ export const defaultChangeApi = async (payload) => {
 };
 
 export const kpiFilterCountApi = async (payload) => {
-  
   const res = await axiosApiInstance
     .post(API_URL.kpiFilterCount, payload, {
       headers: {
@@ -82,4 +81,18 @@ export const kpiFilterCountApi = async (payload) => {
     .then((response) => response)
     .catch((err) => err?.response?.data);
   return res;
-};  
+};
+
+export const segmentationApi = async (payload) => {
+  const res = await axiosApiInstance
+    .post(API_URL.segmentationData, payload, {
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+      },
+    })
+    .then((response) => response)
+    .catch((err) => err?.response?.data);
+  return res;
+};

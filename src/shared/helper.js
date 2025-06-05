@@ -51,3 +51,24 @@ export const analyticsConfig = {
     setStaleReportsAction: setIsExecutionMatricsReportStale,
   },
 };
+
+export const tabsConfig = [
+  {
+    label: "Output",
+    dropdown: true,
+    download: true,
+  },
+  {
+    label: "Deciling",
+    dropdown: true,
+    download: true,
+    kpiFilter: true,
+  },
+  // {
+  //   label: "Segmentation & Target",
+  //   dropdown: true,
+  //   download: true,
+  //   kpiFilter: true,
+  // },
+  // Add more tabs as needed...
+];

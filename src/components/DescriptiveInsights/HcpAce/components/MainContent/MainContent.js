@@ -1,34 +1,36 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import "./MainContent.css"; // Styles for this component
 // import DescriptiveInsightsTable from "../DescriptiveInsightsTable/DescriptiveInsightsTable";
 import ParameterModal from "../Popup/ParameterModal";
-import ArrowUpward from "@mui/icons-material/ArrowUpward";
-import ArrowDownward from "@mui/icons-material/ArrowDownward";
+import { nanoid } from "@reduxjs/toolkit"; // Add this line
 import {
   setDragData,
   removeDroppedParam,
+  addDroppedParam,
+  setFlowChartData,
 } from "../../../../../redux/descriptiveInsights/hcpaceSlice";
-import CloseIcon from "@mui/icons-material/Close";
-import EditIcon from "@mui/icons-material/Edit";
+
 import { kpiFilterCountApi } from "../../../../../services/businessRules.service";
 import {
   setColumns,
   sethcpAceApiData,
   setRows,
   sethcpLoader,
+  setOutputTabData,
+  setDecilingData,
 } from "../../../../../redux/descriptiveInsights/tableSlice";
 
 import {
-  RadioGroup,
-  Radio,
-  FormControlLabel,
-  FormControl,
-} from "@mui/material";
-import { hcpAceApi } from "../../../../../services/DescriptiveInsights/hcpace.service";
+  decilingApi,
+  hcpAceApi,
+  saveFlowChartDataApi,
+} from "../../../../../services/DescriptiveInsights/hcpace.service";
 import ResultTabs from "../ResultTabs/ResultTabs";
+import FlowChartPanel from "./Flowchart/FlowChartPanel";
+import { toast } from "react-toastify";
 
 const MainContent = () => {
   const [modalOpen, setModalOpen] = useState(false);
@@ -37,7 +39,7 @@ const MainContent = () => {
   const [previousParams, setPreviousParams] = useState([]);
   const [droppedParamsConfig, setDroppedParamsConfig] = useState({});
   const [countsData, setCountsData] = useState({});
-  const [customFilterChips, setCustomFilterChips] = useState({});
+
   const [customFilterStatus, setCustomFilterStatus] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isCancelled, setIsCancelled] = useState(false);
@@ -47,25 +49,37 @@ const MainContent = () => {
   });
   const [position, setPosition] = useState(false);
   const [selectedListType, setSelectedListType] = useState(""); // 'Unique List' or 'Overlap List'
+  const [filtered, setFiltered] = useState(null);
+  const [defaultTab, setDefaultTab] = useState(0);
   const selectedkpiData = useSelector(
     (state) => state.dragData.selectedkpiData
   );
+  const savedFlowChartData = useSelector(
+    (state) => state.dragData.savedFlowChartData
+  );
+  // console.log("selectedkpidata", selectedkpiData);
 
   const [sourceOfTrigger, setSourceOfTrigger] = useState("");
   const kpiConfig = useSelector((state) => state.dragData.Kpiconfigs);
+
+  // console.log("kpiconfig", kpiConfig);
   const dragData = useSelector((state) => state.dragData.dragData);
+  // console.log("dragdata", dragData);
   const actionType = useSelector((state) => state.dragData.actionType);
+  // console.log("actiontype", actionType);
   const [filterConditions, setFilterdConditions] = useState("");
   const [showTable, setShowTable] = useState(false);
   const selectedDataSources = useSelector(
     (state) => state.dragData.selectedDataSources
   );
+  // console.log("selecteddatasource", selectedDataSources);
   const droppedParamsBySource = useSelector(
     (state) => state.dragData.droppedParamsBySource
   );
+  // console.log("droppedparamsbysource", droppedParamsBySource);
   const dispatch = useDispatch();
   const [dataSources, setDataSources] = useState([]);
-  console.log("datas--", droppedParamsBySource);
+
   const operatorButtonColors = [
     // "rgba(255,255,255)"
 
@@ -98,19 +112,22 @@ const MainContent = () => {
       dragData.length > 0 &&
       sourceOfTrigger !== "cancel"
     ) {
-      const lastParam = dragData[dragData.length - 1];
+      const lastChip = dragData[dragData.length - 1]; // now it's a chip object
+      const paramName = lastChip?.name;
+      const chipType = lastChip?.type;
 
       const alreadyConfigured =
-        droppedParamsConfig[lastParam] &&
-        Object.keys(droppedParamsConfig[lastParam]).length > 0;
+        droppedParamsConfig[paramName] &&
+        Object.keys(droppedParamsConfig[paramName]).length > 0;
 
-      if (lastParam && !pendingParam && !alreadyConfigured) {
-        setPendingParam(lastParam);
+      const isRegularParam = chipType === "param";
+
+      if (isRegularParam && paramName && !pendingParam && !alreadyConfigured) {
+        setPendingParam(lastChip); // set the full chip object
         setModalOpen(true);
       }
     }
 
-    // Reset the trigger so future additions behave normally
     if (sourceOfTrigger === "cancel") {
       setSourceOfTrigger(null);
     }
@@ -122,153 +139,192 @@ const MainContent = () => {
     pendingParam,
   ]);
 
-  // useEffect(() => {
-  //   if (actionType === "remove") {
-  //     setIsCancelled(true);
-  //     setSourceOfTrigger("cancel");
-  //   }
-  // }, [actionType]);
+  const handleTabChange = (newTab) => {
+    setDefaultTab(newTab);
+  };
 
   useEffect(() => {
     if (actionType === "remove" && Array.isArray(dragData)) {
       setIsCancelled(true);
       setSourceOfTrigger("cancel");
 
-      setDroppedParamsConfig((prevConfig) => {
-        const updatedConfig = {};
+      const remainingIds = new Set(dragData.map((chip) => chip.id));
 
-        // Keep only params that still exist in dragData
-        Object.keys(prevConfig).forEach((param) => {
-          if (dragData.includes(param)) {
-            updatedConfig[param] = prevConfig[param];
+      // Loop over each source and remove chips that are no longer in dragData
+      for (const source in droppedParamsBySource) {
+        droppedParamsBySource[source].forEach((chip) => {
+          if (
+            chip.type === "param" && // ✅ Only act on param chips
+            !remainingIds.has(chip.id)
+          ) {
+            dispatch(
+              removeDroppedParam({
+                chipId: chip.id,
+                dataSource: source,
+              })
+            );
           }
         });
+      }
 
-        return updatedConfig;
+      // Also update droppedParamsConfig if needed
+      setDroppedParamsConfig((prev) => {
+        const updated = {};
+        dragData.forEach((chip) => {
+          if (chip.type === "param" && prev[chip.name]) {
+            updated[chip.name] = prev[chip.name];
+          }
+        });
+        return updated;
       });
     }
-  }, [actionType, dragData]);
+  }, [actionType, dragData, droppedParamsBySource]);
 
   useEffect(() => {
-    callKpiFilterCountApi();
-    setCustomFilterStatus(false);
-    setPosition(false);
-  }, [customFilterStatus, position]);
-  useEffect(() => {
-    // This effect triggers the API call when a parameter has been configured (its entry exists in droppedParamsConfig)
+    if (sourceOfTrigger === "custom" || sourceOfTrigger === "reorder") {
+      callKpiFilterCountApi();
+      setCustomFilterStatus(false);
+      setPosition(false);
+      setSourceOfTrigger(null); // Reset
+    }
+  }, [customFilterStatus, position, sourceOfTrigger]);
 
+  useEffect(() => {
     if (
       !isEditMode &&
-      pendingParam &&
-      droppedParamsConfig[pendingParam] &&
-      Object.keys(droppedParamsConfig[pendingParam]).length > 0
+      pendingParam?.type === "param" &&
+      sourceOfTrigger !== "custom" &&
+      sourceOfTrigger !== "reorder" &&
+      pendingParam?.name &&
+      droppedParamsConfig[pendingParam.name] &&
+      Object.keys(droppedParamsConfig[pendingParam.name]).length > 0
     ) {
       callKpiFilterCountApi();
-      // `pendingParam` is cleared in `callKpiFilterCountApi`'s finally block or if skipped
+      // setSourceOfTrigger(null);
     }
-  }, [droppedParamsConfig, pendingParam]); // Ensure pendingParam is a dependency
+  }, [droppedParamsConfig, pendingParam, sourceOfTrigger]);
 
-  const handleChipClick = async (clickedIndex, dataSource) => {
-    const sliced = droppedParamsBySource[dataSource]?.slice(
-      0,
-      clickedIndex + 1
+  useEffect(() => {
+    if (sourceOfTrigger) {
+      const timer = setTimeout(() => setSourceOfTrigger(null), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [sourceOfTrigger]);
+
+  useEffect(() => {
+    if (pendingParam && pendingParam.id) {
+      // Check if pendingParam is a valid object with an ID
+      setModalOpen(true); // Open the modal
+    } else {
+      // If pendingParam becomes null (e.g., after modal close/cancel),
+      // ensure modal is closed as well.
+      setModalOpen(false);
+    }
+  }, [pendingParam]);
+
+const handleChipClick = async (clickedIndex, dataSource) => {
+  setSelectedListType(""); // Reset selected list type on chip click
+  if (defaultTab !== 0) setDefaultTab(0);
+
+ 
+  const sliced = droppedParamsBySource[dataSource]?.slice(0, clickedIndex + 1);
+  setPreviousParams(sliced);
+
+  const getFilteredSlicedValues = (dataSource, filterConditions, sliced) => {
+    const result = {};
+
+    const actualDataSourceKey = Object.keys(filterConditions).find(
+      (key) => key.toLowerCase() === dataSource.toLowerCase()
     );
-    setPreviousParams(sliced);
 
-    const getFilteredSlicedValues = (dataSource, filterConditions, sliced) => {
-      const result = {};
 
-      const actualDataSourceKey = Object.keys(filterConditions).find((key) =>
-        key.toLowerCase().includes(dataSource.toLowerCase())
-      );
-
-      if (!actualDataSourceKey) {
-        console.warn(
-          `Data source "${dataSource}" not found in filterCondition.`
-        );
-        return result;
-      }
-
-      const dataSourceFilters = filterConditions[actualDataSourceKey];
-
-      for (const key of sliced) {
-        if (dataSourceFilters.hasOwnProperty(key)) {
-          result[key] = dataSourceFilters[key];
-        }
-      }
-
+    if (!actualDataSourceKey) {
+      console.warn(`Data source "${dataSource}" not found in filterConditions.`);
       return result;
-    };
-
-    const filtered = getFilteredSlicedValues(
-      dataSource,
-      filterConditions,
-      sliced
-    );
-
-    const payload1 = {
-      Kpi: selectedkpiData,
-      filter_condition: {
-        [dataSource]: {
-          ...filtered,
-        },
-      },
-    };
-
-    try {
-      dispatch(sethcpLoader(true));
-      const response = await hcpAceApi(payload1);
-      // console.log("Response from hcpAceApi:", response);
-      if (response?.status === 200 && response.data) {
-        dispatch(sethcpAceApiData(response.data));
-        const apiRows = response.data[0].Rows || [];
-        const apiColumns = response.data[0].Columns || [];
-
-        const fieldAliasMap = {
-          specialty: "spec", // rename this field
-          total_calls: "total_calls", // keep as-is
-        };
-
-        const transformedColumns = apiColumns.map((col) => {
-          const field = col.toLowerCase();
-          const fieldName = fieldAliasMap[field] || field;
-          const headerName =
-            col.charAt(0).toUpperCase() + col.slice(1).replaceAll("_", " ");
-
-          return {
-            field: fieldName,
-            headerName,
-            flex: 1,
-            minWidth: 100,
-            type: typeof field === "number" ? "number" : "string",
-            sortable: true,
-          };
-        });
-
-        const transformedRows = apiRows.map((row, index) => {
-          const newRow = { id: index + 1 };
-
-          apiColumns.forEach((col) => {
-            const originalKey = col.toLowerCase();
-            const mappedKey = fieldAliasMap[originalKey] || originalKey;
-
-            newRow[mappedKey] = row[originalKey];
-          });
-
-          return newRow;
-        });
-        dispatch(setRows(transformedRows));
-        dispatch(setColumns(transformedColumns));
-        setShowTable(true);
-        dispatch(sethcpLoader(false));
-      }
-    } catch (error) {
-      console.error("Error calling hcpAceApi:", error);
-      dispatch(sethcpLoader(false));
     }
+
+    const dataSourceFilters = filterConditions[actualDataSourceKey];
+     
+    let customFilterCounter = 1;
+
+    for (const sliceObj of sliced) {
+      const key = sliceObj.name;
+      console.log(key,'key --')
+      if (sliceObj.type === "customFilter") {
+        const customKey = `customFilter${customFilterCounter++}`;
+        result[customKey] = sliceObj.data; 
+      } else if (dataSourceFilters.hasOwnProperty(key)) {
+        result[key] = dataSourceFilters[key]; 
+      }
+    }
+    
+    return { [actualDataSourceKey]: result };
   };
 
+  const filtered = getFilteredSlicedValues(dataSource, filterConditions, sliced);
+  setFiltered(filtered);
+
+  const payload = {
+    Kpi: selectedkpiData,
+    filter_condition: filtered,
+    same_kpi_with_added_filter: true,
+  };
+
+
+  try {
+    dispatch(sethcpLoader(true));
+    const response = await hcpAceApi(payload);
+    if (response?.status === 200 && response.data) {
+      dispatch(sethcpAceApiData(response.data));
+      const apiRows = response.data[0].Rows || [];
+      const apiColumns = response.data[0].Columns || [];
+
+      const fieldAliasMap = {
+        specialty: "spec",
+        total_calls: "total_calls",
+      };
+
+      const transformedColumns = apiColumns.map((col) => {
+        const field = col.toLowerCase();
+        const fieldName = fieldAliasMap[field] || field;
+        const headerName =
+          col.charAt(0).toUpperCase() + col.slice(1).replaceAll("_", " ");
+
+        return {
+          field: fieldName,
+          headerName,
+          flex: 1,
+          minWidth: 100,
+          type: typeof field === "number" ? "number" : "string",
+          sortable: true,
+        };
+      });
+
+      const transformedRows = apiRows.map((row, index) => {
+        const newRow = { id: index + 1 };
+        apiColumns.forEach((col) => {
+          const originalKey = col.toLowerCase();
+          const mappedKey = fieldAliasMap[originalKey] || originalKey;
+          newRow[mappedKey] = row[originalKey];
+        });
+        return newRow;
+      });
+
+      dispatch(setRows(transformedRows));
+      dispatch(setColumns(transformedColumns));
+      dispatch(setOutputTabData({ columns: transformedColumns, rows: transformedRows }));
+      setShowTable(true);
+    }
+  } catch (error) {
+    console.error("Error calling hcpAceApi:", error);
+  } finally {
+    dispatch(sethcpLoader(false));
+  }
+};
+
+
   const handleListClick = async (index) => {
+    defaultTab !== 0 && setDefaultTab(0);
     function getTrimmedDataByCategoryIndex(filterConditions, index) {
       const trimmed = {};
 
@@ -346,6 +402,12 @@ const MainContent = () => {
         if (allTables.length > 0) {
           dispatch(setColumns(allTables[0].columns));
           dispatch(setRows(allTables[0].rows));
+          dispatch(
+            setOutputTabData({
+              columns: allTables[0].columns,
+              rows: allTables[0].rows,
+            })
+          );
         }
 
         setShowTable(true);
@@ -355,100 +417,50 @@ const MainContent = () => {
       dispatch(sethcpLoader(false));
     }
   };
-
-  const callKpiFilterCountApi = () => {
+  const generateKpiFilterPayload = ({
+    droppedParamsBySource,
+    droppedParamsConfig,
+    selectedkpiData,
+  }) => {
     const filterCondition = {};
 
-    // 1. Get a unique list of all dataSourceNames that are active
-    // (i.e., have either regular params or custom filters)
-    const allRelevantDataSourceNames = new Set([
-      ...Object.keys(droppedParamsBySource), // Data sources with regular params
-      ...Object.keys(customFilterChips).filter(
-        (dsName) => customFilterChips[dsName]?.length > 0
-      ), // Data sources with active custom filters
-    ]);
+    const allRelevantDataSourceNames = Object.keys(droppedParamsBySource);
 
-    // 2. Iterate over this comprehensive list of data source names
     for (const dataSourceName of allRelevantDataSourceNames) {
-      const paramsInDs = droppedParamsBySource[dataSourceName]; // May be undefined
-      const customFiltersInDs = customFilterChips[dataSourceName]; // May be undefined or empty
-      // console.log(
-      //   `Data source: ${dataSourceName}, customFiltersInDs:`,
-      //   customFiltersInDs
-      // );
-      const hasActiveRegularParams = paramsInDs && paramsInDs.length > 0;
-      const hasActiveCustomFilters =
-        customFiltersInDs && customFiltersInDs.length > 0;
-      // console.log("hasactivecustomfilter", hasActiveCustomFilters);
+      const chipsInDataSource = droppedParamsBySource[dataSourceName];
+      if (!chipsInDataSource || chipsInDataSource.length === 0) continue;
 
-      // Only proceed if there's at least one type of filter for this data source
-      if (hasActiveRegularParams || hasActiveCustomFilters) {
-        filterCondition[dataSourceName] = {}; // Initialize the entry for this data source
+      filterCondition[dataSourceName] = {};
+      let customFilterCounter = 1;
 
-        // Logic for regular parameters (copied from your original code)
-        if (hasActiveRegularParams) {
-          paramsInDs.forEach((paramName) => {
-            if (
-              droppedParamsConfig[paramName] &&
-              droppedParamsConfig[paramName][dataSourceName]
-            ) {
+      chipsInDataSource.forEach((chip) => {
+        if (chip.type === "param") {
+          const paramName = chip.name;
+
+          if (
+            droppedParamsConfig[paramName] &&
+            droppedParamsConfig[paramName][dataSourceName]
+          ) {
+            filterCondition[dataSourceName][paramName] =
+              droppedParamsConfig[paramName][dataSourceName];
+          } else if (droppedParamsConfig[paramName]) {
+            const configuredSources = Object.keys(
+              droppedParamsConfig[paramName]
+            );
+            if (configuredSources.length > 0) {
               filterCondition[dataSourceName][paramName] =
-                droppedParamsConfig[paramName][dataSourceName];
-            } else if (droppedParamsConfig[paramName]) {
-              const configuredSources = Object.keys(
-                droppedParamsConfig[paramName]
-              );
-              if (configuredSources.length > 0) {
-                filterCondition[dataSourceName][paramName] =
-                  droppedParamsConfig[paramName][configuredSources[0]];
-              }
+                droppedParamsConfig[paramName][configuredSources[0]];
             }
-          });
-        }
-
-        // Logic for adding the hardcoded custom filter
-
-        if (hasActiveCustomFilters) {
-          switch (dataSourceName) {
-            case "Xponent Data":
-              filterCondition[dataSourceName]["customFilter"] = {
-                ww: {
-                  Col_name: "NRX",
-                  Condition: ">",
-                  Col_val: "5",
-                },
-              };
-              break;
-
-            case "Claims Data":
-              filterCondition[dataSourceName]["customFilter"] = {
-                ww: {
-                  Col_name: "Regimen Category",
-                  Condition: "in",
-                  Col_val: ["OPDIVO", "O+Y", "O+CHEMO"],
-                },
-              };
-              break;
-
-            case "Call Activity Data":
-              filterCondition[dataSourceName]["customFilter"] = {
-                ww: {
-                  Col_name: "Total Calls",
-                  Condition: ">",
-                  Col_val: "5",
-                },
-              };
-              break;
-
-            default:
-              // Optional: add a fallback
-              break;
           }
+        } else if (chip.type === "customFilter") {
+          const filterKey = `customFilter${customFilterCounter}`;
+          filterCondition[dataSourceName][filterKey] = chip.data || {};
+          customFilterCounter++;
         }
+      });
 
-        if (Object.keys(filterCondition[dataSourceName]).length === 0) {
-          delete filterCondition[dataSourceName];
-        }
+      if (Object.keys(filterCondition[dataSourceName]).length === 0) {
+        delete filterCondition[dataSourceName];
       }
     }
 
@@ -458,8 +470,20 @@ const MainContent = () => {
       ? [selectedkpiData]
       : [];
 
+    return {
+      kpiPayload,
+      filterCondition,
+    };
+  };
+
+  const callKpiFilterCountApi = () => {
+    const { kpiPayload, filterCondition } = generateKpiFilterPayload({
+      droppedParamsBySource,
+      droppedParamsConfig,
+      selectedkpiData,
+    });
+
     if (kpiPayload.length === 0) {
-      // console.log("Skipping API call: No KPIs selected.");
       setIsLoading(false);
       if (pendingParam) setPendingParam(null);
       return;
@@ -472,8 +496,7 @@ const MainContent = () => {
       );
 
     if (isFilterConditionEffectivelyEmpty) {
-      // console.log("Skipping API call: No filters configured to apply.");
-      setCountsData({}); // Clear counts if no filters
+      setCountsData({});
       setIsLoading(false);
       if (pendingParam) setPendingParam(null);
       return;
@@ -485,21 +508,16 @@ const MainContent = () => {
       same_kpi_with_added_filter: true,
     };
 
-    setFilterdConditions(filterCondition); // You might want to rename this to setFilteredConditions
+    setFilterdConditions(filterCondition);
     setIsLoading(true);
 
     kpiFilterCountApi(payload)
       .then((res) => {
-        if (res?.data) {
-          // console.log("API Response:", res.data);
-          setCountsData(res.data.Counts || {});
-        } else {
-          setCountsData({});
-        }
+        setCountsData(res?.data?.Counts || {});
       })
       .catch((error) => {
-        setCountsData({});
         console.error("Error fetching kpiFilterCountApi:", error);
+        setCountsData({});
       })
       .finally(() => {
         setIsLoading(false);
@@ -508,26 +526,38 @@ const MainContent = () => {
   };
 
   const handleModalSubmit = ({ param, dataSource, values }) => {
-    console.log(
-      "Modal submit error: Parameter name or dataSource is missing.",
-      { param, dataSource, values }
-    );
     if (!param || !dataSource) {
       setIsEditMode(false);
       setModalOpen(false);
 
-      if (pendingParam && param === pendingParam) setPendingParam(null);
+      if (pendingParam && param === pendingParam?.name) setPendingParam(null);
       return;
     }
+
+    // If `param` is a string, find the chip object from current dropped list
+    let paramChip = param;
+    if (typeof param === "string") {
+      const sourceChips = droppedParamsBySource[dataSource] || [];
+      paramChip = sourceChips.find((chip) => chip.name === param);
+    }
+
+    if (!paramChip || !paramChip.id) {
+      console.warn("Could not locate valid chip object for param", param);
+      setIsEditMode(false);
+      setModalOpen(false);
+      return;
+    }
+
+    // Update config using chip name and dataSource
     setDroppedParamsConfig((prevConfig) => ({
       ...prevConfig,
-      [param]: {
-        ...prevConfig[param], // Preserve other data source configs for this param
-        [dataSource]: values, // Set/update config for this specific data source
+      [paramChip.name]: {
+        ...prevConfig[paramChip.name],
+        [dataSource]: values,
       },
     }));
 
-    setPendingParam(param);
+    setPendingParam(paramChip); // Store full chip object
     setIsEditMode(false);
     setModalOpen(false);
   };
@@ -541,653 +571,431 @@ const MainContent = () => {
     );
   };
 
-  const openEditModal = (paramToEdit) => {
-    setPendingParam(paramToEdit);
-    setModalOpen(true);
-  };
-
-  const handleMoveChip = (dataSource, paramToMove, direction) => {
-    const currentParams = [...(droppedParamsBySource[dataSource] || [])];
-    const indexToMove = currentParams.indexOf(paramToMove);
-    if (indexToMove === -1) return;
-    const newIndex = indexToMove + direction;
-
-    if (newIndex >= 0 && newIndex < currentParams.length) {
-      const updatedParams = [...currentParams];
-      const [movedParam] = updatedParams.splice(indexToMove, 1);
-      updatedParams.splice(newIndex, 0, movedParam);
-      dispatch({
-        type: "dragData/reorderDroppedParams",
-        payload: { dataSource, params: updatedParams },
-      });
-      // callKpiFilterCountApi();
-      setPendingParam(paramToMove);
-    }
-  };
   const getListData = () => {
     if (!selectedListType || !countsData) return {};
     const listTypeKey = selectedListType.replace(" ", "_");
     return countsData[listTypeKey] || {};
   };
 
+  const handleDrop = (e, dataSource) => {
+    e.preventDefault();
+
+    const existingCustomFilters =
+      droppedParamsBySource[dataSource]?.filter(
+        (chip) => chip.type === "customFilter"
+      ) || [];
+
+    const newCountKey = `customFilter${existingCustomFilters.length + 1}`;
+
+    // 1. Handle Custom Filter Drop
+    const customData = e.dataTransfer.getData("customFilter");
+    if (customData) {
+      try {
+        const parsed = JSON.parse(customData);
+        const chip = {
+          name: parsed.name,
+          id: `${parsed.name}-${Date.now()}-${nanoid()}`,
+          type: "customFilter",
+          data: parsed.data,
+          countKey: newCountKey,
+        };
+
+        const firstDataSource = parsed.dataSources[0];
+
+        if (firstDataSource === dataSource) {
+          dispatch(
+            addDroppedParam({
+              chip,
+              dataSource: firstDataSource,
+            })
+          );
+          setSourceOfTrigger("custom");
+          setCustomFilterStatus(true);
+        }
+      } catch (err) {
+        console.error("Invalid custom filter data:", err);
+      }
+      return; // Exit after handling custom
+    }
+
+    // 2. Handle Regular Parameter Drop
+    const paramName = e.dataTransfer.getData("text/plain").trim();
+    if (
+      paramName &&
+      selectedkpiData &&
+      selectedkpiData.length > 0 &&
+      kpiConfig
+    ) {
+      const sourcesToAdd = new Set();
+
+      selectedkpiData.forEach((kpiName) => {
+        const kpiConfigForKpi = kpiConfig[kpiName];
+        if (kpiConfigForKpi) {
+          for (const level1 in kpiConfigForKpi) {
+            if (
+              kpiConfigForKpi.hasOwnProperty(level1) &&
+              kpiConfigForKpi[level1] &&
+              kpiConfigForKpi[level1][paramName]
+            ) {
+              kpiConfigForKpi[level1][paramName].forEach((source) => {
+                sourcesToAdd.add(source.trim());
+              });
+              break;
+            }
+          }
+        }
+      });
+
+      const newParamChip = {
+        id: `${paramName}-${nanoid()}`,
+        type: "param",
+        name: paramName,
+      };
+
+      dispatch(
+        addDroppedParam({
+          chip: newParamChip,
+          sources: Array.from(sourcesToAdd),
+        })
+      );
+
+      // ✅ FIXED: Push full chip object to dragData, not just a string
+      dispatch(
+        setDragData({
+          dragData: [...dragData, newParamChip],
+          actionType: "add",
+        })
+      );
+    }
+  };
+
+  const handleChipClickInternal = (e, idx, dataSource) => {
+    e.stopPropagation();
+    setShowTable(true);
+    setPreviousParams(droppedParamsBySource[dataSource]?.slice(0, idx + 1));
+    handleChipClick(idx, dataSource);
+
+    // currentTab === 0
+    //   ? handleChipClick(idx, dataSource)
+    //   : fetchDecilingData(idx, dataSource);
+    setSelectedChip({ dataSource, index: idx });
+  };
+
+  // Change parameter from 'param' to 'chipToMove' (or just 'chip')
+  const handleMoveUp = (e, dataSource, chipToMove) => {
+    // chipToMove is now the full chip object
+    e.stopPropagation();
+    const currentChips = [...(droppedParamsBySource[dataSource] || [])];
+    // Find the index by comparing chip IDs
+    const indexToMove = currentChips.findIndex(
+      (chip) => chip.id === chipToMove.id
+    );
+
+    if (indexToMove > 0) {
+      const newChips = [...currentChips];
+      [newChips[indexToMove - 1], newChips[indexToMove]] = [
+        newChips[indexToMove],
+        newChips[indexToMove - 1],
+      ];
+
+      dispatch({
+        type: "dragData/reorderDroppedParams",
+        payload: { dataSource, chips: newChips }, // Ensure payload property name matches reducer expects 'chips'
+      });
+      setSourceOfTrigger("reorder");
+      setPosition(true);
+
+      // callKpiFilterCountApi();
+    }
+  };
+
+  const handleMoveDown = (e, dataSource, chipToMove) => {
+    // chipToMove is now the full chip object
+    e.stopPropagation();
+    const currentChips = [...(droppedParamsBySource[dataSource] || [])];
+    // Find the index by comparing chip IDs
+    const indexToMove = currentChips.findIndex(
+      (chip) => chip.id === chipToMove.id
+    );
+
+    if (indexToMove < currentChips.length - 1) {
+      const newChips = [...currentChips];
+      [newChips[indexToMove], newChips[indexToMove + 1]] = [
+        newChips[indexToMove + 1],
+        newChips[indexToMove],
+      ];
+
+      dispatch({
+        type: "dragData/reorderDroppedParams",
+        payload: { dataSource, chips: newChips }, // Ensure payload property name matches reducer expects 'chips'
+      });
+
+      setSourceOfTrigger("reorder");
+      setPosition(true);
+      // callKpiFilterCountApi();
+    }
+  };
+
+  const handleCloseClick = (e, chipToRemove, dataSource) => {
+    e.stopPropagation();
+
+    // The chipToRemove object now contains id, type, name, and potentially data
+    dispatch(
+      removeDroppedParam({
+        chipId: chipToRemove.id, // Use the unique ID for removal
+        dataSource: dataSource, // Pass the dataSource to target the specific array
+      })
+    );
+
+    setSourceOfTrigger("cancel");
+    setIsCancelled(true);
+  };
+
+  const handleEditClick = (e, chipToEdit) => {
+    // chipToEdit is the full chip object
+    e.stopPropagation();
+
+    // If it's a custom filter chip, do nothing as per requirement
+    if (chipToEdit.type === "customFilter") {
+      console.log("Edit action not supported for custom filter chips yet.");
+      return; // Exit the function
+    }
+
+    // Logic for regular parameter chips (chipToEdit.type === 'param')
+    // We now set the ENTIRE chip object to pendingParam
+    setIsEditMode(true);
+    setPendingParam(chipToEdit); // <-- CHANGE THIS LINE
+
+    const timePeriodParams = [
+      "Year",
+      "Month",
+      "Quarter",
+      "Week",
+      "Date",
+      "Start Date Available",
+      "End Date Available",
+      "Diagnosis Min Date",
+    ];
+
+    // When checking against timePeriodParams, use chipToEdit.name
+    if (timePeriodParams.includes(chipToEdit.name)) {
+      // Use chipToEdit.name here
+      setModalOpen(true);
+      // setDateModalOpen(true);
+    } else {
+      setModalOpen(true);
+    }
+  };
+  const getSelectedConfig = () => {
+    return Object.entries(droppedParamsBySource).reduce(
+      (acc, [source, params]) => {
+        if (
+          params.includes(pendingParam) &&
+          droppedParamsConfig[pendingParam]?.[source]
+        ) {
+          acc = droppedParamsConfig[pendingParam][source];
+        }
+        return acc;
+      },
+      []
+    );
+  };
+
+  const handleModalCancel = () => {
+    if (!pendingParam) return;
+
+    const hasConfiguration = !!droppedParamsConfig[pendingParam];
+
+    if (!hasConfiguration) {
+      for (const source in droppedParamsBySource) {
+        if (droppedParamsBySource[source]?.includes(pendingParam)) {
+          dispatch(removeDroppedParam({ param: pendingParam, source }));
+        }
+      }
+
+      dispatch(
+        setDragData({
+          dragData: dragData.filter((item) => item !== pendingParam),
+          actionType: "remove",
+        })
+      );
+    }
+
+    setIsEditMode(false);
+    setModalOpen(false);
+    setPendingParam(null);
+  };
+
+  const handleFlowChartSave = async (FlowChartName ) => {
+ 
+        const { kpiPayload, filterCondition } = generateKpiFilterPayload({
+      droppedParamsBySource,
+      droppedParamsConfig,
+      selectedkpiData,
+    });
+    const payload = {
+      FlowChartName: FlowChartName,
+    Kpi: kpiPayload,
+      filter_condition: filterCondition,
+      same_kpi_with_added_filter: true,
+    };
+    const response = await saveFlowChartDataApi(payload);
+    if (response?.status === 200) {
+      dispatch(setFlowChartData([payload, ...savedFlowChartData]));
+      toast.success("Flow Chart saved sucessfully")
+    } else {
+      console.error("Error fetching saved custom filters:", response);
+    }
+  };
+
+  // Assuming pendingParam is now the full chip object when set
+
+  // Assuming pendingParam is now the full chip object when set
+  // e.g., setPendingParam(chipToEdit); in handleEditClick
+
+  const handleModalSubmitWrapper = (data) => {
+    // If pendingParam is a chip object (which it should be in edit mode)
+    if (!pendingParam || !pendingParam.id) {
+      console.error(
+        "handleModalSubmitWrapper: pendingParam is not a valid chip object."
+      );
+      return; // Or handle this error more gracefully
+    }
+
+    // Find the dataSource where this specific chip (by ID) exists
+    let dataSourceFound = null;
+    for (const source in droppedParamsBySource) {
+      if (
+        droppedParamsBySource[source]?.some(
+          (chip) => chip.id === pendingParam.id
+        )
+      ) {
+        dataSourceFound = source;
+        break;
+      }
+    }
+
+    // If the chip wasn't found in any source (which implies an error in flow),
+    // you might want to handle this case, e.g., by logging or preventing submission.
+    if (!dataSourceFound) {
+      console.warn(
+        "handleModalSubmitWrapper: Chip not found in any dataSource for submission."
+      );
+      // You might decide to return here or proceed without a dataSource if handleModalSubmit can handle it
+      // For now, we'll proceed assuming dataSource is nullable or handles 'undefined'.
+    }
+
+    handleModalSubmit({
+      ...data,
+      dataSource: dataSourceFound, // Pass the found dataSource
+      // You might also want to pass the chip's ID or type if handleModalSubmit needs it
+      chipId: pendingParam.id,
+      chipType: pendingParam.type,
+      chipName: pendingParam.name, // The original name string
+    });
+  };
+
+  //   if (!pendingParam || !pendingParam.id) {
+  //     console.error(
+  //       "handleModalCancel: pendingParam is not a valid chip object."
+  //     );
+  //     setIsEditMode(false);
+  //     setModalOpen(false);
+  //     setPendingParam(null);
+  //     return;
+  //   }
+
+  //   // Check if the current pendingParam (chip object) has an existing configuration
+  //   // We assume droppedParamsConfig uses the chip's original name as key for 'param' type
+  //   // and potentially the chip.id for 'customFilter' type if they have configs.
+  //   // For now, let's assume droppedParamsConfig is only for 'param' types.
+  //   const hasConfiguration =
+  //     pendingParam.type === "param" && !!droppedParamsConfig[pendingParam.name];
+
+  //   if (!hasConfiguration) {
+  //     // If no configuration, remove the chip from all dataSources it exists in
+  //     // and also from dragData (if it's a regular parameter).
+  //     const sourcesToClean = [];
+  //     for (const source in droppedParamsBySource) {
+  //       if (
+  //         droppedParamsBySource[source]?.some(
+  //           (chip) => chip.id === pendingParam.id
+  //         )
+  //       ) {
+  //         sourcesToClean.push(source);
+  //       }
+  //     }
+
+  //     // Dispatch removal for each source where the chip was found
+  //     sourcesToClean.forEach((source) => {
+  //       dispatch(
+  //         removeDroppedParam({ chipId: pendingParam.id, dataSource: source })
+  //       );
+  //     });
+
+  //     // Only update dragData if the chip is a regular parameter
+  //     if (pendingParam.type === "param") {
+  //       dispatch(
+  //         setDragData({
+  //           dragData: dragData.filter((item) => item !== pendingParam.name), // Filter by param name string
+  //           actionType: "remove",
+  //         })
+  //       );
+  //     }
+  //   }
+
+  //   setIsEditMode(false);
+  //   setModalOpen(false);
+  //   setPendingParam(null); // Clear the pending chip
+  // };
   return (
     <>
       <main className="hcpace-main">
-        <section
-          className="data-source-cards-flowchart"
-          style={{
-            background: "transparent",
-            display: "flex",
-            flexDirection: "row",
-            gap: "10px",
-            minHeight: "410px",
-            height: "auto",
-            marginTop: "0px",
-            border: "none",
-            paddingLeft: "0px",
-          }}
-        >
-          <div
-            className="data-source-cards-flowchart"
-            style={{
-              height: "auto",
-              marginTop: "22px",
-
-              display: "flex",
-              flexDirection: "column",
-              marginBottom: "1rem",
-
-              padding: "1rem",
-              minHeight: "420px",
-              background: "white",
-              paddingLeft: "23px",
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "row", gap: "25%" }}>
-              <div>
-                {" "}
-                <h3
-                  style={{
-                    marginBottom: "10px",
-                    fontWeight: "500",
-                    marginTop: "5px",
-                    fontSize: "18px",
-                    letterSpacing: "0px",
-                  }}
-                >
-                  Flow Chart
-                </h3>
-              </div>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                justifyContent: "space-evenly",
-                maxHeight: "350px",
-                // overflowY: "auto",
-                gap: "10px",
-              }}
-            >
-              {dataSources.map((dataSource, index) => (
-                <div
-                  className="drop-parameter vertical-flow"
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    flexWrap: "nowrap",
-                    marginBottom: "1rem",
-                    border: `2px solid ${
-                      operatorButtonColors[index % operatorButtonColors.length]
-                    }`,
-                    borderRadius: "5px",
-                    padding: "1rem",
-                    // minHeight: "284px",
-                    background: "white",
-                    maxWidth: "259.4px",
-                    position: "relative",
-                    // overflow: "hidden",
-                    // minHeight: "284px",
-                    height: "320px",
-                    overflowY: "auto",
-                  }}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-
-                    const customData = e.dataTransfer.getData("customFilter");
-                    if (customData) {
-                      try {
-                        const parsed = JSON.parse(customData);
-                        const chip = {
-                          name: parsed.name,
-                          // count: Math.floor(Math.random() * 100) + 1,
-                          id: `${parsed.name}-${Date.now()}`,
-                        };
-                        // console.log("parsed datasource", parsed.dataSource);
-
-                        const firstDataSource = parsed.dataSources[0];
-
-                        if (parsed.dataSources.includes(dataSource)) {
-                          setCustomFilterChips((prev) => {
-                            const updated = {
-                              ...prev,
-                              [firstDataSource]: [
-                                ...(prev[firstDataSource] || []),
-                                chip,
-                              ],
-                            };
-                            setCustomFilterStatus(true);
-                            return updated;
-                          });
-                        }
-                      } catch (err) {
-                        console.error("Invalid custom filter data:", err);
-                      }
-                      return;
-                    }
-
-                    // Normal parameter drop logic (unchanged)
-                    const param = e.dataTransfer.getData("text/plain").trim();
-                    if (
-                      param &&
-                      selectedkpiData &&
-                      selectedkpiData.length > 0 &&
-                      kpiConfig
-                    ) {
-                      const sourcesToAdd = new Set();
-                      selectedkpiData.forEach((kpiName) => {
-                        const kpiConfigForKpi = kpiConfig[kpiName];
-                        if (kpiConfigForKpi) {
-                          for (const level1 in kpiConfigForKpi) {
-                            if (
-                              kpiConfigForKpi.hasOwnProperty(level1) &&
-                              kpiConfigForKpi[level1] &&
-                              kpiConfigForKpi[level1][param]
-                            ) {
-                              kpiConfigForKpi[level1][param].forEach(
-                                (source) => {
-                                  sourcesToAdd.add(source.trim());
-                                }
-                              );
-                              break;
-                            }
-                          }
-                        }
-                      });
-
-                      dispatch({
-                        type: "dragData/addDroppedParam",
-                        payload: { param, sources: Array.from(sourcesToAdd) },
-                      });
-                      dispatch(
-                        setDragData({
-                          dragData: [...dragData, param],
-                          actionType: "add",
-                        })
-                      );
-                    }
-                  }}
-                >
-                  <h5 className="drop-names">{dataSource}</h5>
-
-                  {(droppedParamsBySource[dataSource] || []).map(
-                    (param, idx) => (
-                      <div
-                        key={`${dataSource}-${param}-${idx}`}
-                        className={`dp-chip flow-item ${
-                          isLoading ? "chip-loading" : ""
-                        }`}
-                        style={{
-                          position: "relative",
-                          marginBottom: "0px",
-                          padding: "8px 12px",
-                          border: "1px solid #ccc",
-                          width: "92%",
-                          borderRadius: "5px",
-                          color:
-                            selectedChip.dataSource === dataSource &&
-                            selectedChip.index === idx
-                              ? "white"
-                              : "#001A50",
-                          height: "auto",
-                          display: "block",
-                          // display: "flex",
-                          alignItems: "center",
-                          background:
-                            selectedChip.dataSource === dataSource &&
-                            selectedChip.index === idx
-                              ? "#0057d9"
-                              : "#D7DFE9",
-                          justifyContent: "space-between",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <span
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            width: "100%",
-                            cursor: "pointer",
-                          }}
-                          onClick={(e) => {
-                            setShowTable(true);
-                            setPreviousParams(
-                              droppedParamsBySource[dataSource]?.slice(
-                                0,
-                                idx + 1
-                              )
-                            );
-                            handleChipClick(idx, dataSource);
-
-                            setSelectedChip({ dataSource, index: idx });
-                            e.stopPropagation();
-                          }}
-                        >
-                          {param}
-                          {countsData[dataSource]?.[param] !== undefined && (
-                            <span style={{ marginLeft: "0px" }}>
-                              ({countsData[dataSource][param]})
-                            </span>
-                          )}
-                          <div
-                            style={{ display: "flex", flexDirection: "row" }}
-                          >
-                            {idx > 0 && (
-                              <ArrowUpward
-                                fontSize="12px"
-                                style={{
-                                  cursor: "pointer",
-                                  marginRight: "4px",
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const currentParams = [
-                                    ...(droppedParamsBySource[dataSource] ||
-                                      []),
-                                  ];
-                                  const indexToMove =
-                                    currentParams.indexOf(param);
-                                  if (indexToMove > 0) {
-                                    const newParams = [...currentParams];
-                                    [
-                                      newParams[indexToMove],
-                                      newParams[indexToMove - 1],
-                                    ] = [
-                                      newParams[indexToMove - 1],
-                                      newParams[indexToMove],
-                                    ];
-                                    dispatch({
-                                      type: "dragData/reorderDroppedParams",
-                                      payload: {
-                                        dataSource,
-                                        params: newParams,
-                                      },
-                                    });
-                                    setPosition(true);
-                                    // callKpiFilterCountApi();
-                                  }
-                                }}
-                              />
-                            )}
-                            {idx <
-                              (droppedParamsBySource[dataSource] || []).length -
-                                1 && (
-                              <ArrowDownward
-                                fontSize="12px"
-                                style={{
-                                  cursor: "pointer",
-                                  marginRight: "4px",
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const currentParams = [
-                                    ...(droppedParamsBySource[dataSource] ||
-                                      []),
-                                  ];
-                                  const indexToMove =
-                                    currentParams.indexOf(param);
-                                  if (indexToMove < currentParams.length - 1) {
-                                    const newParams = [...currentParams];
-                                    [
-                                      newParams[indexToMove],
-                                      newParams[indexToMove + 1],
-                                    ] = [
-                                      newParams[indexToMove + 1],
-                                      newParams[indexToMove],
-                                    ];
-                                    dispatch({
-                                      type: "dragData/reorderDroppedParams",
-                                      payload: {
-                                        dataSource,
-                                        params: newParams,
-                                      },
-                                    });
-                                    setPosition(true);
-                                    // callKpiFilterCountApi();
-                                  }
-                                }}
-                              />
-                            )}
-
-                            <EditIcon
-                              fontSize="12px"
-                              style={{ marginLeft: "8px", cursor: "pointer" }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setIsEditMode(true);
-                                setPendingParam(param);
-                                const timePeriodParams = [
-                                  "Year",
-                                  "Month",
-                                  "Quarter",
-                                  "Week",
-                                  "Date",
-                                  "Start Date Available",
-                                  "End Date Available",
-                                  "Diagnosis Min Date",
-                                ];
-                                if (timePeriodParams.includes(param)) {
-                                  setModalOpen(true);
-                                  // setDateModalOpen(true); // DateParameterModal is not imported in the new code
-                                } else {
-                                  setModalOpen(true);
-                                }
-                              }}
-                            />
-                            {/* <CloseIcon
-                              fontSize="12px"
-                              className="dp-chip-remove"
-                              onClick={() => {
-                                dispatch(
-                                  removeDroppedParam({
-                                    param,
-                                    source: dataSource,
-                                  })
-                                );
-
-                                setDroppedParamsConfig((prevConfig) => {
-                                  const updatedConfig = { ...prevConfig };
-                                  if (updatedConfig[param]?.[dataSource]) {
-                                    delete updatedConfig[param][dataSource];
-                                    if (
-                                      Object.keys(updatedConfig[param])
-                                        .length === 0
-                                    ) {
-                                      delete updatedConfig[param];
-                                    }
-                                  }
-                                  return updatedConfig;
-                                });
-                                setSourceOfTrigger("cancel");
-                                setIsCancelled(true);
-                              }}
-                            /> */}
-                            <CloseIcon
-                              fontSize="12px"
-                              className="dp-chip-remove"
-                              onClick={(e) => {
-                                dispatch(
-                                  removeDroppedParam({
-                                    param,
-                                    source: dataSource,
-                                  })
-                                );
-
-                                // No config removal here — we are preserving the values
-                                setSourceOfTrigger("cancel");
-                                setIsCancelled(true);
-                                e.stopPropagation();
-                              }}
-                            />
-                          </div>
-                        </span>
-                        {idx <
-                          (droppedParamsBySource[dataSource] || []).length -
-                            1 && <div className="flow-arrow"></div>}
-                      </div>
-                    )
-                  )}
-                  {(customFilterChips[dataSource] || []).map((chip) => (
-                    <div
-                      key={chip.id}
-                      className={`dp-chip flow-item ${
-                        isLoading ? "chip-loading" : ""
-                      }`}
-                      style={{
-                        position: "relative",
-                        marginBottom: "0px",
-                        padding: "8px 12px",
-                        border: "1px solid #ccc",
-                        width: "auto",
-                        borderRadius: "5px",
-                        color: "#001A50",
-                        height: "auto",
-                        display: "flex",
-                        alignItems: "center",
-                        background: "#D7DFE9",
-                        justifyContent: "space-between",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <span
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          width: "100%",
-                          cursor: "pointer",
-                        }}
-                      >
-                        {chip.name}(
-                        {countsData[dataSource]?.ww !== undefined
-                          ? countsData[dataSource].ww
-                          : "22"}
-                        {/* or 0 or loading... */}){/* ({chip.count}) */}
-                      </span>
-                      <CloseIcon
-                        fontSize="12px"
-                        style={{ cursor: "pointer", marginLeft: "6px" }}
-                        onClick={() => {
-                          setCustomFilterChips((prev) => ({
-                            ...prev,
-                            [dataSource]: (prev[dataSource] || []).filter(
-                              (c) => c.id !== chip.id
-                            ),
-                          }));
-                          setSourceOfTrigger("cancel");
-                          setIsCancelled(true);
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
-                // </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            {areAnyChipsPresent() && (
-              <div
-                className="drop-parameter vertical-flow"
-                style={{
-                  overflowY: "auto",
-                  overflowX: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
-                  marginBottom: "1rem",
-                  marginTop: "21px",
-                  border: "1px solid #CACBCE",
-                  borderRadius: "10px",
-                  padding: "1rem",
-                  height: "422px",
-                  background: "white",
-
-                  position: "relative",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "row,",
-                    padding: "0px",
-                  }}
-                >
-                  <FormControl
-                    component="fieldset"
-                    disabled={!areAnyChipsPresent()}
-                    className="drop-names"
-                  >
-                    <RadioGroup
-                      aria-label="list type"
-                      name="list-type"
-                      value={selectedListType}
-                      onChange={handleListTypeChange}
-                      style={{ display: "flex", flexDirection: "row" }}
-                    >
-                      <FormControlLabel
-                        className="drop-names"
-                        value="Unique List"
-                        control={<Radio />}
-                        label="Unique List"
-                        sx={{
-                          "& .MuiFormControlLabel-label": {
-                            fontFamily: "Inter, sans-serif",
-                            fontWeight: 500,
-                            fontSize: "14px",
-                          },
-                        }}
-                      />
-                      <FormControlLabel
-                        value="Overlap List"
-                        control={<Radio />}
-                        label="Overlap List"
-                        sx={{
-                          "& .MuiFormControlLabel-label": {
-                            fontFamily: "Inter, sans-serif",
-                            fontWeight: 500,
-                            fontSize: "14px",
-                          },
-                        }}
-                      />
-                    </RadioGroup>
-                  </FormControl>
-                </div>
-
-                <div
-                  className="drop-parameter vertical-flow"
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    flexWrap: "nowrap",
-                    marginBottom: "1rem",
-                    border: "2px solid #ccc",
-                    borderRadius: "5px",
-                    padding: "1rem",
-                    // minHeight: "284px",
-                    background: "white",
-                    width: "259.4px",
-                    position: "relative",
-                    marginTop: "0px",
-                    // overflow: "hidden",
-                    height: "284px",
-                    overflowY: "auto",
-                    overflowX: "hidden",
-                  }}
-                >
-                  <h5 className="drop-names">{selectedListType}</h5>
-
-                  {Object.entries(getListData()).map(
-                    ([key, value], index, array) => (
-                      <div
-                        key={key}
-                        className="dp-chip"
-                        style={{
-                          position: "relative",
-                          marginBottom: "0px",
-                          padding: "8px 12px",
-                          border: "1px solid #ccc",
-                          minWidth: "207.39px",
-                          borderRadius: "5px",
-                          color: "#001A50",
-                          // height: "auto",
-                          height: "38px",
-                          display: "flex",
-
-                          alignItems: "center",
-                          background: "#D7DFE9",
-                          justifyContent: "space-between",
-                          cursor: "pointer",
-                        }}
-                        onClick={() => handleListClick(index)}
-                      >
-                        {key}: {value}
-                        {/* Only show arrow if not the last item */}
-                        {index < array.length - 1 && (
-                          <div className="flow-arrow"></div>
-                        )}
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
+        <FlowChartPanel
+          dataSources={dataSources}
+          operatorButtonColors={operatorButtonColors}
+          droppedParamsBySource={droppedParamsBySource} // This now contains BOTH types of chips
+          countsData={countsData}
+          selectedChip={selectedChip}
+          isLoading={isLoading}
+          handleDrop={handleDrop}
+          handleChipClickInternal={handleChipClickInternal}
+          handleMoveUp={handleMoveUp}
+          handleMoveDown={handleMoveDown}
+          handleEditClick={handleEditClick}
+          handleCloseClick={handleCloseClick}
+          setSourceOfTrigger={setSourceOfTrigger}
+          setIsCancelled={setIsCancelled}
+          areAnyChipsPresent={areAnyChipsPresent}
+          selectedListType={selectedListType}
+          handleListTypeChange={handleListTypeChange}
+          getListData={getListData}
+          handleListClick={handleListClick}
+          handleFlowChartSave={handleFlowChartSave}
+        />
 
         {showTable && (
           <section
             className="data-source-cards-tabs"
             style={{ background: "#FFFFFF" }}
           >
-            <ResultTabs />
+            <ResultTabs
+              filtered={filtered}
+              dataSource={selectedChip.dataSource}
+              selectedListType={selectedListType}
+              onTabChange={handleTabChange}
+              defaultTab={defaultTab}
+              filterConditions={filterConditions}
+            />
           </section>
         )}
 
         <ParameterModal
           open={modalOpen}
           param={pendingParam}
-          selected={Object.entries(droppedParamsBySource).reduce(
-            (acc, [source, params]) => {
-              if (
-                params.includes(pendingParam) &&
-                droppedParamsConfig[pendingParam]?.[source]
-              ) {
-                acc = droppedParamsConfig[pendingParam][source];
-              }
-              return acc;
-            },
-            []
-          )}
-          onSubmit={(data) =>
-            handleModalSubmit({
-              ...data,
-              dataSource: Object.keys(droppedParamsBySource).find((source) =>
-                droppedParamsBySource[source]?.includes(pendingParam)
-              ),
-            })
-          }
-          onCancel={() => {
-            if (!pendingParam) return;
-            const hasConfiguration = !!droppedParamsConfig[pendingParam];
-            if (!hasConfiguration) {
-              for (const source in droppedParamsBySource) {
-                if (droppedParamsBySource[source]?.includes(pendingParam)) {
-                  dispatch(removeDroppedParam({ param: pendingParam, source }));
-                }
-              }
-              dispatch(
-                setDragData({
-                  dragData: dragData.filter((item) => item !== pendingParam),
-                  actionType: "remove",
-                })
-              );
-            }
-            setIsEditMode(false);
-            setModalOpen(false);
-            setPendingParam(null);
-          }}
+          selected={getSelectedConfig()}
+          onSubmit={handleModalSubmitWrapper}
+          onCancel={handleModalCancel}
         />
         {/* DateParameterModal is not included in the new code */}
       </main>

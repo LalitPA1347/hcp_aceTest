@@ -8,12 +8,24 @@ import MainContent from "./components/MainContent/MainContent";
 import "./HcpAce.css";
 import SidePanel from "./components/MainContent/SidePanel/SidePanel";
 import TuneIcon from "@mui/icons-material/Tune";
+import SavedFlowChart from "./components/MainContent/SavedFlowChart/SavedFlowChart";
 
 const drawerWidth = "17.45%";
 
 const HcpAce = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
+  const [savedFlowChartOpen, setSavedFlowChartOpen] = useState(false);
+
+  const handlesidePanel = () => {
+    setSidePanelOpen((prev) => !prev);
+    setSavedFlowChartOpen(false);
+  };
+
+  const handleSavedFlowChart = () => {
+    setSavedFlowChartOpen((prev) => !prev);
+    setSidePanelOpen(false);
+  };
 
   return (
     <div className="hcpace-wrapper">
@@ -103,12 +115,21 @@ const HcpAce = () => {
 
         {/* Main Content */}
         {/* <MainContent /> */}
-        <SidePanel open={sidePanelOpen} setOpen={setSidePanelOpen} />
+        <SidePanel
+          open={sidePanelOpen}
+          FlowChartOpen={savedFlowChartOpen}
+          handlesideBar={handlesidePanel}
+        />
+        <SavedFlowChart
+          open={savedFlowChartOpen}
+          customerFilterOpen={sidePanelOpen}
+          handleSavedFlowChart={handleSavedFlowChart}
+        />
         <Box
           sx={{
             flexGrow: 1,
             transition: "margin 0.3s ease-in-out, width 0.3s ease-in-out",
-            marginRight: sidePanelOpen ? "17.5%" : 0,
+            marginRight: sidePanelOpen || savedFlowChartOpen ? "17.5%" : 0,
             overflow: "auto",
           }}
         >

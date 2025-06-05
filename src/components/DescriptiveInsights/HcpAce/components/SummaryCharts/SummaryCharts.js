@@ -1,188 +1,3 @@
-// import React, { useImperativeHandle, useRef, forwardRef } from "react";
-// import { Box } from "@mui/material";
-// import { Bar } from "react-chartjs-2";
-// import {
-//   Chart as ChartJS,
-//   CategoryScale,
-//   LinearScale,
-//   BarElement,
-//   Title,
-//   Tooltip,
-//   Legend,
-// } from "chart.js";
-// import { useSelector } from "react-redux";
-
-// // Register ChartJS components
-// ChartJS.register(
-//   CategoryScale,
-//   LinearScale,
-//   BarElement,
-//   Title,
-//   Tooltip,
-//   Legend
-// );
-
-// // Blue shades from darkest to lightest
-// const blueShades = [
-//   "#001a50", // Navy Blue
-//   "#002b80", // Deep Royal Blue
-//   "#0033a0", // Strong Blue
-//   "#0047b3", // Royal Blue
-//   "#0057d9", // Bold Blue
-//   "#1e70ff", // Blue Crayola
-//   "#3399ff", // Medium Sky Blue
-//   "#66b2ff", // Light Sky Blue
-//   "#99ccff", // Pale Blue
-//   "#cce5ff", // Powder Blue
-// ];
-
-// const SummaryCharts = forwardRef((props, ref) => {
-//   const chartRefs = useRef([]);
-//   const chartData = useSelector((store) => store.table.hcpAceApiData || []);
-
-//   // Exclude the 0th chart
-//   const usableData = chartData.slice(1);
-
-//   // Chunk array into pairs of 2
-//   const chunkedData = [];
-//   for (let i = 0; i < usableData.length; i += 2) {
-//     chunkedData.push(usableData.slice(i, i + 2));
-//   }
-
-//   useImperativeHandle(ref, () => ({
-//     handleDownload: () => {
-//       chartRefs.current.forEach((chart, index) => {
-//         if (chart && chart.toBase64Image) {
-//           const image = chart.toBase64Image();
-//           const link = document.createElement("a");
-//           link.href = image;
-//           link.download = `bar-chart-${index + 1}.png`;
-//           link.click();
-//         }
-//       });
-//     },
-//   }));
-
-//   return (
-//     <Box
-//       p={2}
-//       sx={{
-//         borderTop: 1,
-//         borderColor: "divider",
-//         height: 370,
-//         overflowY: "auto",
-//       }}
-//     >
-//       {chunkedData.map((pair, rowIndex) => (
-//         <Box
-//           key={rowIndex}
-//           sx={{
-//             display: "flex",
-//             justifyContent: "space-between",
-//             mb: 4,
-//             gap: 3,
-//           }}
-//         >
-//           {pair.map((chart, colIndex) => {
-//             const rows = [...chart.Rows]; // clone to avoid mutating Redux state
-//             const keyLabel = Object.keys(rows[0])[0];
-//             const keyValue = Object.keys(rows[0])[1];
-
-//             // Sort rows in descending order by value
-//             rows.sort((a, b) => b[keyValue] - a[keyValue]);
-
-//             const labels = rows.map((row) => row[keyLabel]);
-//             const values = rows.map((row) => row[keyValue]);
-
-//             const data = {
-//               labels,
-//               datasets: [
-//                 {
-//                   label: chart.Title.split(" ")[0],
-//                   data: values,
-//                   backgroundColor: blueShades.slice(0, values.length),
-//                 },
-//               ],
-//             };
-
-//             const options = {
-//               responsive: true,
-//               plugins: {
-//                 legend: {
-//                   display: true,
-//                   position: "top",
-//                   labels: {
-//                     usePointStyle: true, // Use point style for custom legend look
-//                     boxWidth: 14, // Adjust circle width (default is 40)
-//                     boxHeight: 10, // Adjust circle height (optional, sets it to a rectangle if modified)
-//                     padding: 10, // Space between legend items
-//                     font: {
-//                       size: 14, // <-- increase this value for larger font
-//                       weight: "normal", // or 'bold', 'lighter', etc.
-//                     },
-//                     generateLabels: (chart) => {
-//                       const labels = chart.data.datasets.map((dataset, i) => {
-//                         return {
-//                           text: dataset.label,
-//                           fillStyle: dataset.borderColor,
-//                           hidden: !chart.isDatasetVisible(i),
-//                           datasetIndex: i,
-//                           pointStyle: "line", // Set to 'line' to use line style in legend
-//                         };
-//                       });
-//                       return labels;
-//                     },
-//                   },
-//                 },
-//               },
-//               scales: {
-//                 x: {
-//                   title: {
-//                     display: true,
-//                     text: Object.keys(chart.Rows[0])[0], // Label for X-axis
-//                     font: {
-//                       size: 14,
-//                     },
-//                   },
-//                 },
-//                 y: {
-//                   title: {
-//                     display: true,
-//                     text: Object.keys(chart.Rows[0])[1], // Label for Y-axis
-//                     font: {
-//                       size: 14,
-//                     },
-//                   },
-//                   ticks: {
-//                     beginAtZero: true,
-//                   },
-//                 },
-//               },
-//             };
-
-//             return (
-//               <Box key={colIndex} sx={{ width: "50%" }}>
-//                 {/* <Typography variant="subtitle1" sx={{ mb: 1 }}>
-//                   {chart.Title.split(" ")[0]}
-//                 </Typography> */}
-//                 <Bar
-//                   ref={(el) =>
-//                     (chartRefs.current[rowIndex * 2 + colIndex] = el)
-//                   }
-//                   data={data}
-//                   options={options}
-//                 />
-//               </Box>
-//             );
-//           })}
-//         </Box>
-//       ))}
-//     </Box>
-//   );
-// });
-
-// export default SummaryCharts;
-
 import React, { useImperativeHandle, useRef, forwardRef } from "react";
 import { Box, Typography } from "@mui/material";
 import { Bar } from "react-chartjs-2";
@@ -195,7 +10,6 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { useSelector } from "react-redux";
 
 // Register ChartJS components
 ChartJS.register(
@@ -223,15 +37,13 @@ const blueShades = [
 
 const SummaryCharts = forwardRef((props, ref) => {
   const chartRefs = useRef([]);
-  const chartData = useSelector((store) => store.table.hcpAceApiData || []);
-
-  // Exclude the 0th chart
-  const usableData = chartData.slice(1);
+  const chartData = props.chartData || [];
+  const chartType = props.type || "bar";
 
   // Chunk array into pairs of 2
   const chunkedData = [];
-  for (let i = 0; i < usableData.length; i += 2) {
-    chunkedData.push(usableData.slice(i, i + 2));
+  for (let i = 0; i < chartData.length; i += 2) {
+    chunkedData.push(chartData.slice(i, i + 2));
   }
 
   // Expose download method to parent
@@ -311,6 +123,38 @@ const SummaryCharts = forwardRef((props, ref) => {
                     },
                   ],
                 };
+                // const labelKey = chart.Columns[0];
+                // const metricKeys = chart.Columns.slice(1);
+
+                // rows.sort((a, b) => b[metricKeys[0]] - a[metricKeys[0]]);
+
+                // const labels = rows.map((row) => row[labelKey]);
+
+                // let datasets;
+
+                // if (metricKeys.length === 1) {
+                //   // Single metric case
+                //   datasets = [
+                //     {
+                //       label: metricKeys[0],
+                //       data: rows.map((row) => row[metricKeys[0]]),
+                //       backgroundColor: blueShades.slice(0, rows.length),
+                //     },
+                //   ];
+                // } else {
+                //   // Multi-metric case
+                //   datasets = metricKeys.map((metric, index) => ({
+                //     label: metric,
+                //     data: rows.map((row) => row[metric]),
+                //     backgroundColor: blueShades[index % blueShades.length],
+                //   }));
+                // }
+
+                // const data = {
+                //   labels,
+                //   datasets,
+                // };
+
 
                 const options = {
                   responsive: true,

@@ -27,7 +27,7 @@ const ParameterModal = ({ open, param, selected = [], onSubmit, onCancel }) => {
   const normalizedParam = Object.keys(kpisData || {}).find(
     (key) =>
       key.toLowerCase().replace(/\s+/g, "") ===
-      param?.toLowerCase().replace(/\s+/g, "")
+      param?.name?.toLowerCase().replace(/\s+/g, "")
   );
   // Get values for the matching key
   const productList = normalizedParam ? kpisData[normalizedParam] : [];
@@ -81,29 +81,16 @@ const ParameterModal = ({ open, param, selected = [], onSubmit, onCancel }) => {
             Math.min(prev + 10, availableOptions.length)
           );
           scrollTimeout = null;
-        }, 100); 
+        }, 100);
       }
     }
   };
-
-  // const handleScroll = (event) => {
-  //   const listboxNode = event.currentTarget;
-  //   const { scrollHeight, scrollTop, clientHeight } = listboxNode;
-  //   if (scrollTop + scrollHeight >= clientHeight) {
-  //     setVisibleCount((prev) => Math.min(prev + 10, availableOptions.length));
-  //   }
-  // };
 
   const [inputValue, setInputValue] = useState("");
 
   const optionsToShow = inputValue
     ? availableOptions
     : availableOptions.slice(0, visibleCount);
-
-  // const visibleOptions = useMemo(
-  //   () => availableOptions.slice(0, visibleCount),
-  //   [availableOptions, visibleCount]
-  // );
 
   return (
     <Dialog
