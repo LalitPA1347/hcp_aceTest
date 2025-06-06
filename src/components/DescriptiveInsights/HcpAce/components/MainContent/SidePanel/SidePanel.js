@@ -13,8 +13,14 @@ import QueryBuilder from "./QueryBuilder/QueryBuilder";
 import DeleteRule from "../../../../../../assets/images/DeleteRule.svg";
 import Edit from "../../../../../../assets/images/Edit.svg";
 import "./SidePanel.css";
+import { toast } from "react-toastify";
 
-export default function SidePanel({ open, handlesideBar, FlowChartOpen }) {
+export default function SidePanel({
+  open,
+  handlesideBar,
+  FlowChartOpen,
+  segmentationPanelOpen,
+}) {
   const dispatch = useDispatch();
   const customFilterData = useSelector(
     (state) => state.customFilterData.filters
@@ -121,6 +127,7 @@ export default function SidePanel({ open, handlesideBar, FlowChartOpen }) {
         (item) => item.QueryName !== payload.QueryName
       );
       dispatch(setCustomFilter(deepCopy));
+      toast.success("Custom Filter Deleted Sucessfully");
     } else {
       console.error("Error deleting custom filter:", response);
     }
@@ -144,7 +151,13 @@ export default function SidePanel({ open, handlesideBar, FlowChartOpen }) {
     <>
       {/* Toggle Button */}
       <button
-        className={`sp-toggle ${open ? "open" : FlowChartOpen ? "flow-open" : ""}`}
+        className={`sp-toggle ${
+          open
+            ? "open"
+            : FlowChartOpen || segmentationPanelOpen
+            ? "flow-open"
+            : ""
+        }`}
         onClick={handlesideBar}
         aria-label={open ? "Custom Filters" : "Custom Filters"}
       >

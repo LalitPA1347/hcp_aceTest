@@ -2,17 +2,16 @@ import React, { forwardRef, useImperativeHandle } from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import { Box, useTheme } from "@mui/material";
 import "./DescriptiveInsightsTable.css";
-import { useSelector } from "react-redux";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
 const DescriptiveInsightsTable = forwardRef(({ rows, columns }, ref) => {
   const theme = useTheme();
-  // const rows = useSelector((state) => state.table.rows);
-  // const columns = useSelector((state) => state.table.columns);
 
   useImperativeHandle(ref, () => ({
     handleDownload() {
+      if (!Array.isArray(rows) || !Array.isArray(columns)) return;
+
       const exportData = rows.map((row) => {
         const result = {};
         columns.forEach((col) => {
@@ -36,48 +35,47 @@ const DescriptiveInsightsTable = forwardRef(({ rows, columns }, ref) => {
   }));
 
   return (
-    <>
-      <Box
+    <Box
+      sx={{
+        height: 370,
+        width: "100%",
+        bgcolor: "#fff",
+        overflowY: "auto",
+      }}
+    >
+      <DataGrid
+        rows={Array.isArray(rows) ? rows : []}
+        columns={Array.isArray(columns) ? columns : []}
+        disableSelectionOnClick
+        pageSize={5}
+        rowsPerPageOptions={[5]}
         sx={{
-          height: 370,
-          width: "100%",
-          bgcolor: "#fff",
-          overflowY: "auto",
+          border: "none",
+          borderLeft: `1px solid ${theme.palette.divider}`,
+          borderRight: `1px solid ${theme.palette.divider}`,
+          fontFamily: `"Segoe UI","Selawik","Open Sans",Arial,sans-serif`,
+          "& .MuiDataGrid-columnHeader": {
+            backgroundColor: theme.palette.grey[100],
+            borderBottom: `1px solid ${theme.palette.divider}`,
+            borderTop: `1px solid ${theme.palette.divider}`,
+            position: "sticky",
+            top: 0,
+          },
+          "& .MuiDataGrid-row": {
+            bgcolor: "#fff",
+          },
+          "& .MuiDataGrid-row:hover": {
+            bgcolor: theme.palette.action.hover,
+          },
+          "& .MuiDataGrid-footerContainer": {
+            display: "none",
+          },
+          "& .MuiDataGrid-cell": {
+            borderBottom: `1px solid ${theme.palette.divider}`,
+          },
         }}
-      >
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          disableSelectionOnClick
-          pageSize={5}
-          rowsPerPageOptions={[5]}
-          sx={{
-            border: "none",
-            // borderRadius: "0px",
-            fontFamily: `"Segoe UI","Selawik","Open Sans",Arial,sans-serif`,
-            "& .MuiDataGrid-columnHeader": {
-              backgroundColor: theme.palette.grey[100],
-              borderBottom: `1px solid ${theme.palette.divider}`,
-              borderTop: `1px solid ${theme.palette.divider}`,
-              position: "sticky",
-              top: 0,
-            },
-            "& .MuiDataGrid-row": {
-              bgcolor: "#fff",
-            },
-            "& .MuiDataGrid-row:hover": {
-              bgcolor: theme.palette.action.hover,
-            },
-            "& .MuiDataGrid-footerContainer": {
-              display: "none",
-            },
-            "& .MuiDataGrid-cell": {
-              borderBottom: `1px solid ${theme.palette.divider}`,
-            },
-          }}
-        />
-      </Box>
-    </>
+      />
+    </Box>
   );
 });
 

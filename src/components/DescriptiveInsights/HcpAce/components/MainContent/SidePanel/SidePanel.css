@@ -52,6 +52,7 @@
   border: none;
   width: 35px; /* Make it rectangular */
   height: 110px;
+  border-right: 3px solid lightgray;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -66,6 +67,7 @@
 .sp-toggle.open {
   right: 17.5%; /* Move with the panel when open */
   background-color: #ffffff;
+  border: none;
   box-shadow: 0 2px 0px rgba(0, 0, 0, 0.2);
 }
 .sp-toggle.flow-open {

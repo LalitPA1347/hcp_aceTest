@@ -24,4 +24,3 @@ export const {
   // setSegmentRuleList,
 } = indicationDropdownSlice.actions;
 export default indicationDropdownSlice.reducer;
-

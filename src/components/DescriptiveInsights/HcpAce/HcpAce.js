@@ -9,6 +9,7 @@ import "./HcpAce.css";
 import SidePanel from "./components/MainContent/SidePanel/SidePanel";
 import TuneIcon from "@mui/icons-material/Tune";
 import SavedFlowChart from "./components/MainContent/SavedFlowChart/SavedFlowChart";
+import SegmentationPanel from "../HcpAce/components/Segmentation/SegmentationPanel";
 
 const drawerWidth = "17.45%";
 
@@ -16,15 +17,23 @@ const HcpAce = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [savedFlowChartOpen, setSavedFlowChartOpen] = useState(false);
+  const [segmentationPanelOpen, setSegmentationPanelOpen] = useState(false);
 
   const handlesidePanel = () => {
     setSidePanelOpen((prev) => !prev);
     setSavedFlowChartOpen(false);
+    setSegmentationPanelOpen(false);
   };
 
   const handleSavedFlowChart = () => {
     setSavedFlowChartOpen((prev) => !prev);
     setSidePanelOpen(false);
+    setSegmentationPanelOpen(false);
+  };
+  const handleSegmentationPalen = () => {
+    setSegmentationPanelOpen((prev) => !prev);
+    setSidePanelOpen(false);
+    setSavedFlowChartOpen(false);
   };
 
   return (
@@ -119,17 +128,28 @@ const HcpAce = () => {
           open={sidePanelOpen}
           FlowChartOpen={savedFlowChartOpen}
           handlesideBar={handlesidePanel}
+          segmentationPanelOpen={segmentationPanelOpen}
         />
         <SavedFlowChart
           open={savedFlowChartOpen}
           customerFilterOpen={sidePanelOpen}
+          segmentationPanelOpen={segmentationPanelOpen}
           handleSavedFlowChart={handleSavedFlowChart}
+        />
+        <SegmentationPanel
+          open={segmentationPanelOpen}
+          handleSavedFlowChart={handleSegmentationPalen}
+          customerFilterOpen={sidePanelOpen}
+          FlowChartOpen={savedFlowChartOpen}
         />
         <Box
           sx={{
             flexGrow: 1,
             transition: "margin 0.3s ease-in-out, width 0.3s ease-in-out",
-            marginRight: sidePanelOpen || savedFlowChartOpen ? "17.5%" : 0,
+            marginRight:
+              sidePanelOpen || savedFlowChartOpen || segmentationPanelOpen
+                ? "17.5%"
+                : 0,
             overflow: "auto",
           }}
         >

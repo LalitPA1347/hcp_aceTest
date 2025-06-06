@@ -19,9 +19,9 @@ import bin from "../../../../../assets/images/imagesR/Vector.svg";
 
 const TargetModal = ({ open, onCancel, onSubmit }) => {
   const allOptions = useMemo(
-  () => Array.from({ length: 10 }, (_, i) => (10 - i).toString()),
-  []
-);
+    () => Array.from({ length: 10 }, (_, i) => (10 - i).toString()),
+    []
+  );
   const [inputValue, setInputValue] = useState("");
   const [tempSelected, setTempSelected] = useState([]);
   const [name, setName] = useState("");
@@ -228,6 +228,23 @@ const TargetModal = ({ open, onCancel, onSubmit }) => {
                   </IconButton>
                 </Box>
               ))}
+              <Button
+                disabled={true}
+                sx={{
+                  background: "#001A50",
+                  color: "white",
+                  marginTop: "10px",
+                  textTransform: "none",
+                  "&:hover": { background: "#003080" },
+                  "&.Mui-disabled": {
+                    background: "#001A50",
+                    color: "white",
+                    opacity: 0.5, // dim the entire button
+                  },
+                }}
+              >
+                Save Segmentation Filter
+              </Button>
             </Box>
           </Box>
         )}

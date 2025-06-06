@@ -2,7 +2,7 @@
 // const baseUrl =
 //   "http://paclaimstoolbackendcommon.us-east-2.elasticbeanstalk.com";
 // const baseUrl = "https://api.patientace.pharmaace.ai";
-const baseUrl = "http://localhost:8000"
+const baseUrl = "http://localhost:8000";
 export const API_URL = {
   // login: `${process.env.BASE_URL}/users/login`,
   BaseURL: baseUrl,
@@ -29,6 +29,13 @@ export const API_URL = {
   deleteAdhocs: `${baseUrl}/delete-adhoc`,
   kpiFilterCount: `${baseUrl}/Kpi_filter_count`,
   hcpOutputDataApi: `${baseUrl}/output-data`,
+  segmentationData: `${baseUrl}/segmentation-data`,
   decileOutputData: `${baseUrl}/decile-output-data`,
   decilingConcentrationCurve: `${baseUrl}/concentration-curve-data`,
+  customFilterData: `${baseUrl}/custom-filter-rule-get`,
+  savedCustomFilter: `${baseUrl}/custom-filter-rules-save`,
+  deleteCustomFilter: `${baseUrl}/custom-filter-rule-delete`,
+  savedFlowChartData: `${baseUrl}/fetch_flowcharts`,
+  deleteFlowChartData: `${baseUrl}/delete_flowchart`,
+  saveFlowChartData: `${baseUrl}/save_flowchart_config`,
 };
